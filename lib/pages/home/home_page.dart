@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/utils/dummy_data.dart';
 import 'package:publishify/models/book.dart';
-import 'package:publishify/widgets/navigation/bottom_nav_bar.dart';
 import 'package:publishify/widgets/cards/status_card.dart';
 import 'package:publishify/widgets/cards/action_button.dart';
 import 'package:publishify/widgets/cards/book_card.dart';
+import 'package:publishify/services/naskah_service.dart';
+import 'package:publishify/services/auth_service.dart';
 
 class HomePage extends StatefulWidget {
   final String? userName;
@@ -20,46 +20,90 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
   late List<Book> _books;
   late Map<String, int> _statusCount;
+  bool _isLoading = true;
+  String _userName = '';
 
   @override
   void initState() {
     super.initState();
-    _loadDummyData();
+    _loadData();
   }
 
-  void _loadDummyData() {
-    // Load data from DummyData class - mudah diganti nanti
-    _books = DummyData.getBooks();
-    _statusCount = DummyData.getStatusCount();
-  }
-
-  void _onNavBarTap(int index) {
-    if (index == _currentIndex) return; // Jika sudah di halaman yang sama, tidak perlu navigate
-    
+  Future<void> _loadData() async {
     setState(() {
-      _currentIndex = index;
+      _isLoading = true;
     });
-    
-    // Navigate to different pages based on index using pushReplacementNamed
-    switch (index) {
-      case 0:
-        // Already on Home
-        break;
-      case 1:
-        // Navigate to Statistics
-        Navigator.pushReplacementNamed(context, '/statistics');
-        break;
-      case 2:
-        // Navigate to Notifications
-        Navigator.pushReplacementNamed(context, '/notifications');
-        break;
-      case 3:
-        // Navigate to Profile
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
+
+    // Load user name from cache
+    final namaTampilan = await AuthService.getNamaTampilan();
+    if (namaTampilan != null) {
+      _userName = namaTampilan;
+    }
+
+    // Load naskah from API
+    await _loadNaskahFromAPI();
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _loadNaskahFromAPI() async {
+    try {
+      // Get all naskah (no status filter to show all books)
+      final response = await NaskahService.getNaskahSaya(
+        halaman: 1,
+        limit: 20,
+      );
+
+      if (response.sukses && response.data != null && response.data!.isNotEmpty) {
+        // Convert NaskahData to Book model
+        _books = response.data!.map((naskah) {
+          // Get author name from penulis data
+          String authorName = _userName.isNotEmpty ? _userName : 'Anda';
+          if (naskah.penulis?.profilPenulis?.namaPena != null) {
+            authorName = naskah.penulis!.profilPenulis!.namaPena;
+          } else if (naskah.penulis?.profilPengguna?.namaTampilan != null) {
+            authorName = naskah.penulis!.profilPengguna!.namaTampilan;
+          }
+
+          return Book(
+            id: naskah.id,
+            title: naskah.judul,
+            author: authorName,
+            imageUrl: naskah.urlSampul,
+            status: naskah.status,
+            lastModified: DateTime.tryParse(naskah.dibuatPada),
+            pageCount: naskah.jumlahHalaman > 0 
+                ? naskah.jumlahHalaman 
+                : (naskah.jumlahKata / 250).round(),
+            description: naskah.sinopsis,
+          );
+        }).toList();
+
+        // Get status count
+        _statusCount = await NaskahService.getStatusCount();
+      } else {
+        // No data, show empty message instead of dummy
+        _books = [];
+        _statusCount = {
+          'draft': 0,
+          'review': 0,
+          'revision': 0,
+          'published': 0,
+        };
+      }
+    } catch (e) {
+      // Error, show empty
+      _books = [];
+      _statusCount = {
+        'draft': 0,
+        'review': 0,
+        'revision': 0,
+        'published': 0,
+      };
     }
   }
 
@@ -75,39 +119,43 @@ class _HomePageState extends State<HomePage> {
             
             // Main Content
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Search Bar
-                    _buildSearchBar(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Status Summary
-                    _buildStatusSummary(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Action Buttons
-                    _buildActionButtons(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Books List
-                    _buildBooksList(),
-                    
-                    const SizedBox(height: 80), // Space for bottom nav
-                  ],
-                ),
-              ),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.primaryGreen,
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Search Bar
+                          _buildSearchBar(),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Status Summary
+                          _buildStatusSummary(),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Action Buttons
+                          _buildActionButtons(),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Books List
+                          _buildBooksList(),
+                          
+                          const SizedBox(height: 80), // Space for bottom nav
+                        ],
+                      ),
+                    ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onNavBarTap,
       ),
     );
   }
@@ -132,7 +180,7 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Hi ${widget.userName ?? "Salsabila"}',
+                    'Hi ${_userName.isNotEmpty ? _userName : (widget.userName ?? "Penulis")}',
                     style: AppTheme.headingMedium.copyWith(
                       color: AppTheme.white,
                       fontSize: 24,
@@ -274,6 +322,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icons.print,
             label: '',
             onTap: () => _handleAction('print'),
+            badgeIcon: Icons.store,
           ),
           ActionButton(
             icon: Icons.list,
@@ -304,20 +353,51 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 240,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: _books.length,
-            itemBuilder: (context, index) {
-              return BookCard(
-                book: _books[index],
-                onTap: () => _openBook(_books[index]),
-              );
-            },
-          ),
-        ),
+        _books.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.book_outlined,
+                        size: 64,
+                        color: AppTheme.greyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Belum ada naskah',
+                        style: AppTheme.bodyLarge.copyWith(
+                          color: AppTheme.primaryDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Mulai menulis naskah pertamamu dengan\nmenekan tombol tambah naskah',
+                        textAlign: TextAlign.center,
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.greyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : SizedBox(
+                height: 240,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _books.length,
+                  itemBuilder: (context, index) {
+                    return BookCard(
+                      book: _books[index],
+                      onTap: () => _openBook(_books[index]),
+                    );
+                  },
+                ),
+              ),
       ],
     );
   }
@@ -339,6 +419,9 @@ class _HomePageState extends State<HomePage> {
     } else if (action == 'revisi') {
       // Navigate to revision page
       Navigator.pushNamed(context, '/revisi');
+    } else if (action == 'print') {
+      // Navigate to pilih percetakan page
+      Navigator.pushNamed(context, '/pilih-percetakan');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

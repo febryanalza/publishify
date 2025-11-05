@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/login_page.dart';
+import 'package:publishify/pages/main_layout.dart';
+import 'package:publishify/services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,15 +15,39 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToLogin();
+    _checkAuthAndNavigate();
   }
 
-  _navigateToLogin() async {
+  Future<void> _checkAuthAndNavigate() async {
+    // Show splash screen for 3 seconds
     await Future.delayed(const Duration(seconds: 3));
-    if (mounted) {
+    
+    if (!mounted) return;
+
+    // Check if user is logged in
+    final isLoggedIn = await AuthService.isLoggedIn();
+    
+    if (isLoggedIn) {
+      // User sudah login, ambil data user
+      final userName = await AuthService.getNamaTampilan();
+      
+      // Navigate to Main Layout (Home Page)
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
+        MaterialPageRoute(
+          builder: (context) => MainLayout(
+            initialIndex: 0,
+            userName: userName,
+          ),
+        ),
+      );
+    } else {
+      // User belum login, navigate ke Login Page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginPage(),
+        ),
       );
     }
   }
@@ -36,39 +62,16 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             // Logo Icon - Using a simple icon as placeholder
             Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryGreen,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.menu_book_rounded,
-                size: 70,
-                color: AppTheme.white,
+              width: 200,
+              height: 200,
+              child: Image.asset(
+                'assets/images/logo.png',
+                height: 160,
+                width: 160,
               ),
             ),
-            const SizedBox(height: 24),
-            // App Name
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.auto_stories,
-                  color: AppTheme.primaryGreen,
-                  size: 40,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Publishify',
-                  style: AppTheme.headingLarge.copyWith(
-                    fontSize: 36,
-                    color: AppTheme.primaryGreen,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
+            
             Text(
               'Connect Writers & Editors',
               style: AppTheme.bodyMedium.copyWith(

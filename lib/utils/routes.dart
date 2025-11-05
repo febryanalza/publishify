@@ -3,12 +3,11 @@ import 'package:publishify/pages/splash_screen.dart';
 import 'package:publishify/pages/login_page.dart';
 import 'package:publishify/pages/register_page.dart';
 import 'package:publishify/pages/success_page.dart';
-import 'package:publishify/pages/home/home_page.dart';
-import 'package:publishify/pages/statistics/statistics_page.dart';
-import 'package:publishify/pages/notifications/notifications_page.dart';
-import 'package:publishify/pages/profile/profile_page.dart';
+import 'package:publishify/pages/main_layout.dart';
 import 'package:publishify/pages/upload/upload_book_page.dart';
 import 'package:publishify/pages/revision/revision_page.dart';
+import 'package:publishify/pages/print/print_page.dart';
+import 'package:publishify/pages/percetakan/pilih_percetakan_page.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -21,6 +20,8 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String uploadBook = '/upload-book';
   static const String revisi = '/revisi';
+  static const String print = '/print';
+  static const String pilihPercetakan = '/pilih-percetakan';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -28,12 +29,11 @@ class AppRoutes {
       login: (context) => const LoginPage(),
       register: (context) => const RegisterPage(),
       success: (context) => const SuccessPage(),
-      home: (context) => const HomePage(),
-      statistics: (context) => const StatisticsPage(),
-      notifications: (context) => const NotificationsPage(),
-      profile: (context) => const ProfilePage(),
+      home: (context) => const MainLayout(initialIndex: 0),
       uploadBook: (context) => const UploadBookPage(),
       revisi: (context) => const RevisionPage(),
+      print: (context) => const PrintPage(),
+      pilihPercetakan: (context) => const PilihPercetakanPage(),
     };
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/success_page.dart';
+import 'package:publishify/services/auth_service.dart';
+import 'package:publishify/models/auth_models.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -11,34 +13,57 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
-  final _ttlController = TextEditingController();
-  final _jenisKelController = TextEditingController();
-  final _penulisController = TextEditingController();
-  final _usernameController = TextEditingController();
+  final _namaDepanController = TextEditingController();
+  final _namaBelakangController = TextEditingController();
+  final _teleponController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   
   // Dropdown options
-  String? _selectedJenisKel;
-  final List<String> _jenisKelOptions = ['Laki-laki', 'Perempuan'];
-  
-  String? _selectedPenulis;
-  final List<String> _penulisOptions = ['Novel', 'Cerpen', 'Puisi', 'Esai', 'Artikel', 'Lainnya'];
+  String? _selectedJenisPeran;
+  final List<Map<String, String>> _jenisPeranOptions = [
+    {'value': 'penulis', 'label': 'Penulis'},
+    {'value': 'editor', 'label': 'Editor'},
+  ];
 
   @override
   void dispose() {
-    _fullNameController.dispose();
-    _ttlController.dispose();
-    _jenisKelController.dispose();
-    _penulisController.dispose();
-    _usernameController.dispose();
+    _namaDepanController.dispose();
+    _namaBelakangController.dispose();
+    _teleponController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
+      // Validate password match
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password dan konfirmasi password tidak cocok!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Validate role selection
+      if (_selectedJenisPeran == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pilih jenis peran terlebih dahulu!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       // Show loading
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -53,27 +78,50 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
               SizedBox(width: 16),
-              Text('Creating account...'),
+              Text('Membuat akun...'),
             ],
           ),
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 30),
         ),
       );
 
-      // Dummy registration - simulate API call
-      await Future.delayed(const Duration(seconds: 1));
+      // Call real API
+      final response = await AuthService.register(
+        RegisterRequest(
+          email: _emailController.text,
+          kataSandi: _passwordController.text,
+          konfirmasiKataSandi: _confirmPasswordController.text,
+          namaDepan: _namaDepanController.text,
+          namaBelakang: _namaBelakangController.text,
+          telepon: _teleponController.text,
+          jenisPeran: _selectedJenisPeran!,
+        ),
+      );
 
       if (mounted) {
-        // Navigate to success page
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SuccessPage(
-              userName: _fullNameController.text,
-              message: 'Akun Writer berhasil dibuat!',
+        // Hide loading
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (response.sukses) {
+          // Navigate to success page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SuccessPage(
+                userName: '${_namaDepanController.text} ${_namaBelakangController.text}',
+                message: 'Akun berhasil dibuat! Silakan cek email Anda untuk verifikasi.',
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -126,92 +174,84 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Nama Field
+                // Nama Depan Field
                 TextFormField(
-                  controller: _fullNameController,
+                  controller: _namaDepanController,
                   decoration: AppTheme.inputDecoration(
-                    hintText: 'Nama',
+                    hintText: 'Nama Depan',
                   ).copyWith(
                     prefixIcon: null,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Nama harus diisi';
+                      return 'Nama depan harus diisi';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 12),
                 
-                // TTL Field
+                // Nama Belakang Field
                 TextFormField(
-                  controller: _ttlController,
+                  controller: _namaBelakangController,
                   decoration: AppTheme.inputDecoration(
-                    hintText: 'TTL',
+                    hintText: 'Nama Belakang',
                   ).copyWith(
                     prefixIcon: null,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Tempat tanggal lahir harus diisi';
+                      return 'Nama belakang harus diisi';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 12),
                 
-                // Jenis Kelamin Dropdown
+                // Telepon Field
+                TextFormField(
+                  controller: _teleponController,
+                  decoration: AppTheme.inputDecoration(
+                    hintText: 'Nomor Telepon',
+                  ).copyWith(
+                    prefixIcon: null,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Nomor telepon harus diisi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                // Jenis Peran Dropdown
                 DropdownButtonFormField<String>(
                   decoration: AppTheme.inputDecoration(
-                    hintText: 'Jenis Kel',
+                    hintText: 'Pilih Peran',
                   ).copyWith(
                     prefixIcon: null,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
-                  items: _jenisKelOptions.map((String value) {
+                  value: _selectedJenisPeran,
+                  items: _jenisPeranOptions.map((Map<String, String> option) {
                     return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+                      value: option['value'],
+                      child: Text(option['label']!),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
-                      _selectedJenisKel = newValue;
+                      _selectedJenisPeran = newValue;
                     });
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Jenis kelamin harus dipilih';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 12),
-                
-                // Penulis Dropdown
-                DropdownButtonFormField<String>(
-                  decoration: AppTheme.inputDecoration(
-                    hintText: 'Penulis',
-                  ).copyWith(
-                    prefixIcon: null,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  items: _penulisOptions.map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedPenulis = newValue;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Jenis penulis harus dipilih';
+                      return 'Jenis peran harus dipilih';
                     }
                     return null;
                   },
@@ -221,7 +261,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 // Section Title "Masukkan"
                 Center(
                   child: Text(
-                    'Masukkan',
+                    'Akun Login',
                     style: AppTheme.headingSmall.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -229,22 +269,23 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 24),
                 
-                // Username Field
+                // Email Field
                 TextFormField(
-                  controller: _usernameController,
+                  controller: _emailController,
                   decoration: AppTheme.inputDecoration(
-                    hintText: 'Username',
+                    hintText: 'Email',
                     prefixIcon: const Icon(
-                      Icons.person_outline,
+                      Icons.email_outlined,
                       color: AppTheme.greyMedium,
                     ),
                   ),
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Username harus diisi';
+                      return 'Email harus diisi';
                     }
-                    if (value.length < 3) {
-                      return 'Username minimal 3 karakter';
+                    if (!value.contains('@')) {
+                      return 'Email tidak valid';
                     }
                     return null;
                   },
@@ -281,6 +322,39 @@ class _RegisterPageState extends State<RegisterPage> {
                     }
                     if (value.length < 6) {
                       return 'Password minimal 6 karakter';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Confirm Password Field
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: _obscureConfirmPassword,
+                  decoration: AppTheme.inputDecoration(
+                    hintText: 'Konfirmasi Password',
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: AppTheme.greyMedium,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: AppTheme.greyMedium,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Konfirmasi password harus diisi';
                     }
                     return null;
                   },

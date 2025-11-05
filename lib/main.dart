@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/routes.dart';
 
-void main() {
+Future<void> main() async {
+  // Load .env file
+  await dotenv.load(fileName: ".env");
+  
   runApp(const MainApp());
 }
 

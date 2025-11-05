@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/dummy_data.dart';
 import 'package:publishify/models/statistics.dart';
-import 'package:publishify/widgets/navigation/bottom_nav_bar.dart';
 import 'package:publishify/widgets/cards/sales_chart.dart';
 import 'package:publishify/widgets/cards/comment_card.dart';
 import 'package:publishify/widgets/cards/rating_bar.dart';
@@ -15,7 +14,6 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  int _currentIndex = 1; // Statistics tab
   late Statistics _statistics;
 
   @override
@@ -27,33 +25,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
   void _loadData() {
     // Load data from DummyData - mudah diganti nanti
     _statistics = DummyData.getStatistics();
-  }
-
-  void _onNavBarTap(int index) {
-    if (index == _currentIndex) return; // Jika sudah di halaman yang sama, tidak perlu navigate
-    
-    setState(() {
-      _currentIndex = index;
-    });
-    
-    // Navigate to different pages based on index using pushReplacementNamed
-    switch (index) {
-      case 0:
-        // Navigate to Home
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        // Already on Statistics
-        break;
-      case 2:
-        // Navigate to Notifications
-        Navigator.pushReplacementNamed(context, '/notifications');
-        break;
-      case 3:
-        // Navigate to Profile
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
   }
 
   @override
@@ -108,10 +79,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onNavBarTap,
       ),
     );
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/register_page.dart';
 import 'package:publishify/pages/success_page.dart';
+import 'package:publishify/services/auth_service.dart';
+import 'package:publishify/models/auth_models.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,13 +14,13 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -42,24 +44,46 @@ class _LoginPageState extends State<LoginPage> {
               Text('Logging in...'),
             ],
           ),
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 30),
         ),
       );
 
-      // Dummy login - simulate API call
-      await Future.delayed(const Duration(seconds: 1));
+      // Call real API
+      final response = await AuthService.login(
+        LoginRequest(
+          email: _emailController.text,
+          kataSandi: _passwordController.text,
+        ),
+      );
 
       if (mounted) {
-        // Navigate to success page
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => SuccessPage(
-              userName: _usernameController.text,
-              message: 'Selamat datang kembali!',
+        // Hide loading
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (response.sukses) {
+          // Get user data from response
+          final userName = response.data?.pengguna.profilPengguna?.namaTampilan ?? 
+                          '${response.data?.pengguna.profilPengguna?.namaDepan ?? ''} ${response.data?.pengguna.profilPengguna?.namaBelakang ?? ''}'.trim();
+
+          // Navigate to success page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SuccessPage(
+                userName: userName,
+                message: 'Selamat datang kembali!',
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -206,19 +230,23 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Username Field
+                // Email Field
                 TextFormField(
-                  controller: _usernameController,
+                  controller: _emailController,
                   decoration: AppTheme.inputDecoration(
-                    hintText: 'Username',
+                    hintText: 'Email',
                     prefixIcon: const Icon(
-                      Icons.person_outline,
+                      Icons.email_outlined,
                       color: AppTheme.greyMedium,
                     ),
                   ),
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your username';
+                      return 'Email harus diisi';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Email tidak valid';
                     }
                     return null;
                   },
@@ -251,7 +279,10 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
+                      return 'Password harus diisi';
+                    }
+                    if (value.length < 6) {
+                      return 'Password minimal 6 karakter';
                     }
                     return null;
                   },

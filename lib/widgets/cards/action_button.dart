@@ -6,6 +6,7 @@ class ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final bool hasNotification;
+  final IconData? badgeIcon;
 
   const ActionButton({
     super.key,
@@ -13,6 +14,7 @@ class ActionButton extends StatelessWidget {
     required this.label,
     this.onTap,
     this.hasNotification = false,
+    this.badgeIcon,
   });
 
   @override
@@ -59,6 +61,30 @@ class ActionButton extends StatelessWidget {
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (badgeIcon != null)
+                Positioned(
+                  right: -6,
+                  bottom: -6,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.white,
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        badgeIcon,
+                        size: 14,
+                        color: AppTheme.white,
                       ),
                     ),
                   ),

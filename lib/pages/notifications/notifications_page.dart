@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/dummy_data.dart';
 import 'package:publishify/models/notification_model.dart';
-import 'package:publishify/widgets/navigation/bottom_nav_bar.dart';
 import 'package:publishify/widgets/cards/notification_card.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -13,7 +12,6 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  int _currentIndex = 2; // Notifications tab
   late List<NotificationModel> _notifications;
 
   @override
@@ -25,33 +23,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _loadData() {
     // Load data from DummyData - mudah diganti nanti
     _notifications = DummyData.getNotifications();
-  }
-
-  void _onNavBarTap(int index) {
-    if (index == _currentIndex) return; // Jika sudah di halaman yang sama, tidak perlu navigate
-    
-    setState(() {
-      _currentIndex = index;
-    });
-    
-    // Navigate to different pages based on index using pushReplacementNamed
-    switch (index) {
-      case 0:
-        // Navigate to Home
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        // Navigate to Statistics
-        Navigator.pushReplacementNamed(context, '/statistics');
-        break;
-      case 2:
-        // Already on Notifications
-        break;
-      case 3:
-        // Navigate to Profile
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
   }
 
   void _markAsRead(NotificationModel notification) {
@@ -174,10 +145,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onNavBarTap,
       ),
     );
   }

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/dummy_data.dart';
 import 'package:publishify/models/user_profile.dart';
-import 'package:publishify/widgets/navigation/bottom_nav_bar.dart';
 import 'package:publishify/widgets/profile/profile_widgets.dart';
+import 'package:publishify/services/auth_service.dart';
+import 'package:publishify/services/profile_service.dart';
+import 'package:publishify/services/naskah_service.dart';
+import 'package:publishify/models/naskah_models.dart';
+import 'package:publishify/pages/profile/edit_profile_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -13,8 +17,14 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  int _currentIndex = 3; // Profile tab
   late UserProfile _profile;
+  String _userName = '';
+  String _userBio = 'Belum dilengkapi';
+  String _userRole = '';
+  String _userAvatar = '';
+  List<NaskahData> _naskahList = [];
+  bool _isLoadingProfile = true;
+  bool _isLoadingNaskah = true;
 
   @override
   void initState() {
@@ -22,36 +32,150 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadData();
   }
 
-  void _loadData() {
-    // Load data from DummyData - mudah diganti nanti dengan API
+  void _loadData() async {
+    // Load data from DummyData for stats only
     _profile = DummyData.getUserProfile();
+    
+    // Load user data from API (with cache)
+    await _loadUserDataFromAPI();
+    
+    // Load naskah from API for portfolio
+    await _loadNaskahFromAPI();
   }
 
-  void _onNavBarTap(int index) {
-    if (index == _currentIndex) return; // Jika sudah di halaman yang sama, tidak perlu navigate
-    
+  Future<void> _loadNaskahFromAPI() async {
     setState(() {
-      _currentIndex = index;
+      _isLoadingNaskah = true;
     });
-    
-    // Navigate to different pages based on index using pushReplacementNamed
-    switch (index) {
-      case 0:
-        // Navigate to Home
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        // Navigate to Statistics
-        Navigator.pushReplacementNamed(context, '/statistics');
-        break;
-      case 2:
-        // Navigate to Notifications
-        Navigator.pushReplacementNamed(context, '/notifications');
-        break;
-      case 3:
-        // Already on Profile
-        break;
+
+    try {
+      // Get all naskah (no status filter, show all manuscripts)
+      final response = await NaskahService.getNaskahSaya(
+        halaman: 1,
+        limit: 10, // Get up to 10 manuscripts for portfolio
+      );
+
+      if (response.sukses && response.data != null) {
+        setState(() {
+          _naskahList = response.data!;
+          _isLoadingNaskah = false;
+        });
+      } else {
+        setState(() {
+          _naskahList = [];
+          _isLoadingNaskah = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _naskahList = [];
+        _isLoadingNaskah = false;
+      });
     }
+  }
+
+  Future<void> _loadUserDataFromAPI() async {
+    setState(() {
+      _isLoadingProfile = true;
+    });
+
+    try {
+      // Get profile from API (will use cache if not expired)
+      final response = await ProfileService.getProfile();
+      
+      if (response.sukses && response.data != null && mounted) {
+        final profileData = response.data!;
+        
+        setState(() {
+          // Get nama tampilan from profile
+          if (profileData.profilPengguna != null) {
+            _userName = profileData.profilPengguna!.namaTampilan;
+            _userBio = profileData.profilPengguna!.bio ?? 'Belum dilengkapi';
+            _userAvatar = profileData.profilPengguna!.urlAvatar ?? '';
+          } else {
+            _userName = 'User';
+            _userBio = 'Belum dilengkapi';
+            _userAvatar = '';
+          }
+          
+          // Get role/peran (join multiple active roles with comma)
+          if (profileData.peranPengguna.isNotEmpty) {
+            final activeRoles = profileData.peranPengguna
+                .where((role) => role.aktif)
+                .map((role) {
+                  // Capitalize first letter of each role
+                  final jenisPeran = role.jenisPeran;
+                  return jenisPeran[0].toUpperCase() + jenisPeran.substring(1);
+                })
+                .toList();
+            
+            _userRole = activeRoles.isNotEmpty ? activeRoles.join(', ') : 'User';
+          } else {
+            _userRole = 'User';
+          }
+          
+          _isLoadingProfile = false;
+        });
+      } else {
+        // If API fails, try to load from old cache
+        await _loadFromOldCache();
+      }
+    } catch (e) {
+      // If error, try to load from old cache
+      await _loadFromOldCache();
+    }
+  }
+
+  /// Fallback: Load from old cache format (for backward compatibility)
+  Future<void> _loadFromOldCache() async {
+    try {
+      final loginData = await AuthService.getLoginData();
+      
+      if (loginData != null && mounted) {
+        setState(() {
+          if (loginData.pengguna.profilPengguna != null) {
+            _userName = loginData.pengguna.profilPengguna!.namaTampilan;
+            _userBio = loginData.pengguna.profilPengguna!.bio ?? 'Belum dilengkapi';
+          } else {
+            _userName = 'User';
+            _userBio = 'Belum dilengkapi';
+          }
+          
+          if (loginData.pengguna.peran.isNotEmpty) {
+            _userRole = loginData.pengguna.peran.map((role) {
+              return role[0].toUpperCase() + role.substring(1);
+            }).join(', ');
+          } else {
+            _userRole = 'User';
+          }
+          
+          _isLoadingProfile = false;
+        });
+      } else {
+        setState(() {
+          _userName = 'User';
+          _userBio = 'Belum dilengkapi';
+          _userRole = 'User';
+          _isLoadingProfile = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _userName = 'User';
+          _userBio = 'Belum dilengkapi';
+          _userRole = 'User';
+          _isLoadingProfile = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshProfile() async {
+    // Clear cache and reload from API
+    await ProfileService.clearProfileCache();
+    await _loadUserDataFromAPI();
+    await _loadNaskahFromAPI();
   }
 
   @override
@@ -64,37 +188,38 @@ class _ProfilePageState extends State<ProfilePage> {
             // Top Header
             _buildHeader(),
             
-            // Main Content - Scrollable
+            // Main Content - Scrollable with RefreshIndicator
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // Profile Info Section
-                    _buildProfileInfo(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Bio Section
-                    _buildBioSection(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Portfolio Section
-                    _buildPortfolioSection(),
-                    
-                    const SizedBox(height: 80), // Space for bottom nav
-                  ],
+              child: RefreshIndicator(
+                onRefresh: _refreshProfile,
+                color: AppTheme.primaryGreen,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      
+                      // Profile Info Section
+                      _buildProfileInfo(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Bio Section
+                      _buildBioSection(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Portfolio Section
+                      _buildPortfolioSection(),
+                      
+                      const SizedBox(height: 80), // Space for bottom nav
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onNavBarTap,
       ),
     );
   }
@@ -149,7 +274,18 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      child: Column(
+      child: _isLoadingProfile
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryGreen,
+                  ),
+                ),
+              ),
+            )
+          : Column(
         children: [
           // Profile Picture
           Container(
@@ -164,7 +300,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             child: ClipOval(
               child: Image.network(
-                _profile.photoUrl,
+                _userAvatar.isNotEmpty ? _userAvatar : _profile.photoUrl,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -197,9 +333,9 @@ class _ProfilePageState extends State<ProfilePage> {
           
           const SizedBox(height: 16),
           
-          // Name
+          // Name (from cache)
           Text(
-            _profile.name,
+            _userName.isEmpty ? _profile.name : _userName,
             style: AppTheme.headingMedium.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -209,9 +345,9 @@ class _ProfilePageState extends State<ProfilePage> {
           
           const SizedBox(height: 4),
           
-          // Role
+          // Role (from cache)
           Text(
-            _profile.role,
+            _userRole.isEmpty ? _profile.role : _userRole,
             style: AppTheme.bodyMedium.copyWith(
               color: AppTheme.greyMedium,
               fontSize: 14,
@@ -272,7 +408,7 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Bio',
+            'Biografi Singkat',
             style: AppTheme.headingSmall.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -280,12 +416,21 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            _profile.bio,
-            style: AppTheme.bodyMedium.copyWith(
-              color: AppTheme.greyMedium,
-              height: 1.6,
-              fontSize: 14,
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              _userBio,
+              style: AppTheme.bodyMedium.copyWith(
+                color: _userBio == 'Belum dilengkapi' 
+                  ? AppTheme.greyMedium.withValues(alpha: 0.6)
+                  : AppTheme.greyMedium,
+                height: 1.6,
+                fontSize: 14,
+                fontStyle: _userBio == 'Belum dilengkapi' 
+                  ? FontStyle.italic 
+                  : FontStyle.normal,
+              ),
+              textAlign: TextAlign.justify,
             ),
           ),
         ],
@@ -309,22 +454,212 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 16),
           
-          // Portfolio List
-          ..._profile.portfolios.map((portfolio) {
-            return PortfolioItem(
-              portfolio: portfolio,
-              onTap: () {
-                // TODO: Navigate to portfolio detail
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Membuka ${portfolio.title}'),
-                    duration: const Duration(seconds: 1),
+          // Loading state
+          if (_isLoadingNaskah)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryGreen,
                   ),
-                );
-              },
-            );
-          }),
+                ),
+              ),
+            )
+          // Empty state
+          else if (_naskahList.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.folder_open,
+                      size: 48,
+                      color: AppTheme.greyMedium.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Belum ada naskah',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.greyMedium,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          // List of naskah from API
+          else
+            ..._naskahList.map((naskah) {
+              return _buildNaskahItem(naskah);
+            }),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNaskahItem(NaskahData naskah) {
+    // Format date
+    String formattedDate = '';
+    try {
+      final date = DateTime.parse(naskah.dibuatPada);
+      formattedDate = '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      formattedDate = '-';
+    }
+
+    // Status color
+    Color statusColor;
+    switch (naskah.status.toLowerCase()) {
+      case 'draft':
+        statusColor = AppTheme.greyMedium;
+        break;
+      case 'review':
+        statusColor = AppTheme.yellow;
+        break;
+      case 'revision':
+        statusColor = Colors.orange;
+        break;
+      case 'published':
+        statusColor = AppTheme.primaryGreen;
+        break;
+      default:
+        statusColor = AppTheme.greyMedium;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            // TODO: Navigate to naskah detail
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Membuka ${naskah.judul}'),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Cover image or placeholder
+                Container(
+                  width: 60,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppTheme.greyLight,
+                    borderRadius: BorderRadius.circular(8),
+                    image: naskah.urlSampul != null
+                        ? DecorationImage(
+                            image: NetworkImage(naskah.urlSampul!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: naskah.sampul == null
+                      ? const Icon(
+                          Icons.book,
+                          color: AppTheme.greyMedium,
+                          size: 32,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                // Naskah info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        naskah.judul,
+                        style: AppTheme.bodyLarge.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.black,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              naskah.status[0].toUpperCase() +
+                                  naskah.status.substring(1),
+                              style: AppTheme.bodySmall.copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (naskah.jumlahKata != null)
+                            Text(
+                              '${naskah.jumlahKata} kata',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: AppTheme.greyMedium,
+                                fontSize: 11,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        formattedDate,
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.greyMedium,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Arrow icon
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppTheme.greyMedium,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -356,15 +691,21 @@ class _ProfilePageState extends State<ProfilePage> {
               ListTile(
                 leading: const Icon(Icons.edit, color: AppTheme.primaryGreen),
                 title: const Text('Edit Profil'),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  // TODO: Navigate to edit profile
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Fitur edit profil akan segera hadir'),
-                      duration: Duration(seconds: 2),
+                  // Navigate to edit profile page
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfilePage(),
                     ),
                   );
+                  
+                  // If profile was updated, reload data from API
+                  if (result == true && mounted) {
+                    await ProfileService.clearProfileCache();
+                    await _loadUserDataFromAPI();
+                  }
                 },
               ),
               ListTile(
@@ -404,28 +745,171 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Keluar'),
-        content: const Text('Apakah Anda yakin ingin keluar?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.logout,
+                color: AppTheme.errorRed,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Keluar'),
+          ],
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari aplikasi?',
+          style: TextStyle(fontSize: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: AppTheme.greyMedium,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                '/login',
-                (route) => false,
-              );
-            },
+          ElevatedButton(
+            onPressed: () => _handleLogout(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: AppTheme.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+            ),
             child: const Text(
               'Keluar',
-              style: TextStyle(color: AppTheme.errorRed),
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleLogout() async {
+    // Close confirmation dialog
+    Navigator.pop(context);
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryGreen,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Logging out...',
+                  style: AppTheme.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Mohon tunggu sebentar',
+                  style: AppTheme.bodySmall.copyWith(
+                    color: AppTheme.greyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    try {
+      // Call logout API and clear all data
+      final success = await AuthService.logout();
+      
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      
+      // Navigate to splash screen and clear all routes
+      if (mounted) {
+        // Navigate to splash screen which will redirect to login
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/',
+          (route) => false,
+        );
+      }
+      
+      // Show success message
+      if (mounted && success) {
+        // Wait a bit then show success on splash
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Berhasil logout'),
+                backgroundColor: AppTheme.primaryGreen,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
+            backgroundColor: AppTheme.errorRed,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      
+      // Still navigate to splash even on error
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/',
+          (route) => false,
+        );
+      }
+    }
   }
 }

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/book_submission.dart';
+import 'package:publishify/models/kategori_models.dart';
+import 'package:publishify/models/genre_models.dart';
+import 'package:publishify/services/kategori_service.dart';
+import 'package:publishify/services/genre_service.dart';
 import 'package:publishify/pages/upload/upload_file_page.dart';
 
 class UploadBookPage extends StatefulWidget {
@@ -19,17 +23,59 @@ class _UploadBookPageState extends State<UploadBookPage> {
   final _synopsisController = TextEditingController();
   
   String? _selectedCategory;
-  final List<String> _categories = [
-    'Fiksi',
-    'Non-Fiksi',
-    'Biografi',
-    'Sejarah',
-    'Teknologi',
-    'Pendidikan',
-    'Agama',
-    'Seni',
-    'Lainnya',
-  ];
+  String? _selectedGenre;
+  List<Kategori> _kategoris = [];
+  List<Genre> _genres = [];
+  bool _isLoadingData = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGenreAndKategori();
+  }
+
+  Future<void> _loadGenreAndKategori() async {
+    setState(() {
+      _isLoadingData = true;
+    });
+
+    try {
+      final kategoriResponse = await KategoriService.getActiveKategori();
+      final genreResponse = await GenreService.getActiveGenres();
+
+      if (kategoriResponse.sukses && genreResponse.sukses) {
+        setState(() {
+          _kategoris = kategoriResponse.data ?? [];
+          _genres = genreResponse.data ?? [];
+          _isLoadingData = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingData = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal memuat data kategori dan genre'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingData = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -53,12 +99,23 @@ class _UploadBookPageState extends State<UploadBookPage> {
         return;
       }
 
+      if (_selectedGenre == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mohon pilih genre'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+        return;
+      }
+
       final submission = BookSubmission(
         title: _titleController.text,
         authorName: _authorController.text,
         publishYear: _publishYearController.text,
         isbn: _isbnController.text,
         category: _selectedCategory!,
+        genre: _selectedGenre!,
         synopsis: _synopsisController.text,
       );
 
@@ -100,12 +157,15 @@ class _UploadBookPageState extends State<UploadBookPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Judul',
-                        style: AppTheme.bodyMedium.copyWith(
-                          color: AppTheme.greyMedium,
-                          fontSize: 14,
-                        ),
+                      _buildTextField(
+                        label: 'Judul',
+                        controller: _authorController,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Judul harus diisi';
+                          }
+                          return null;
+                        },
                       ),
                       
                       const SizedBox(height: 24),
@@ -160,6 +220,11 @@ class _UploadBookPageState extends State<UploadBookPage> {
                       
                       // Kategori Dropdown
                       _buildCategoryDropdown(),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Genre Dropdown
+                      _buildGenreDropdown(),
                       
                       const SizedBox(height: 16),
                       
@@ -305,34 +370,121 @@ class _UploadBookPageState extends State<UploadBookPage> {
               width: 1,
             ),
           ),
-          child: DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              hintText: 'Pilih kategori',
-              hintStyle: AppTheme.bodyMedium.copyWith(
-                color: AppTheme.greyMedium,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-            items: _categories.map((category) {
-              return DropdownMenuItem(
-                value: category,
-                child: Text(category),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedCategory = value;
-              });
-            },
-            icon: const Icon(
-              Icons.keyboard_arrow_down,
-              color: AppTheme.primaryGreen,
+          child: _isLoadingData
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    hintText: 'Pilih kategori',
+                    hintStyle: AppTheme.bodyMedium.copyWith(
+                      color: AppTheme.greyMedium,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: _kategoris.map((kategori) {
+                    return DropdownMenuItem(
+                      value: kategori.nama,
+                      child: Text(kategori.nama),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenreDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Genre',
+          style: AppTheme.bodyMedium.copyWith(
+            color: AppTheme.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.greyDisabled,
+              width: 1,
             ),
           ),
+          child: _isLoadingData
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    hintText: 'Pilih genre',
+                    hintStyle: AppTheme.bodyMedium.copyWith(
+                      color: AppTheme.greyMedium,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  items: _genres.map((genre) {
+                    return DropdownMenuItem(
+                      value: genre.nama,
+                      child: Text(genre.nama),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedGenre = value;
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
         ),
       ],
     );

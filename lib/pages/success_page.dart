@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/pages/home/home_page.dart';
+import 'package:publishify/pages/main_layout.dart';
 
 class SuccessPage extends StatefulWidget {
   final String? userName;
@@ -23,10 +23,11 @@ class _SuccessPageState extends State<SuccessPage> {
     // Auto navigate after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
-        // Navigate to home page
+        // Navigate to main layout (home page)
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => HomePage(
+            builder: (context) => MainLayout(
+              initialIndex: 0,
               userName: widget.userName,
             ),
           ),

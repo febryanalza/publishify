@@ -5,6 +5,7 @@ class BookSubmission {
   final String publishYear;
   final String isbn;
   final String category;
+  final String genre;
   final String synopsis;
   final String? filePath;
 
@@ -14,6 +15,7 @@ class BookSubmission {
     required this.publishYear,
     required this.isbn,
     required this.category,
+    required this.genre,
     required this.synopsis,
     this.filePath,
   });
@@ -24,6 +26,7 @@ class BookSubmission {
     String? publishYear,
     String? isbn,
     String? category,
+    String? genre,
     String? synopsis,
     String? filePath,
   }) {
@@ -33,6 +36,7 @@ class BookSubmission {
       publishYear: publishYear ?? this.publishYear,
       isbn: isbn ?? this.isbn,
       category: category ?? this.category,
+      genre: genre ?? this.genre,
       synopsis: synopsis ?? this.synopsis,
       filePath: filePath ?? this.filePath,
     );
