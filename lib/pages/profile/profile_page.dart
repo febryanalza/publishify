@@ -584,7 +584,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           )
                         : null,
                   ),
-                  child: naskah.sampul == null
+                  child: naskah.urlSampul == null
                       ? const Icon(
                           Icons.book,
                           color: AppTheme.greyMedium,

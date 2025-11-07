@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/pages/splash_screen.dart';
-import 'package:publishify/pages/login_page.dart';
-import 'package:publishify/pages/register_page.dart';
-import 'package:publishify/pages/success_page.dart';
+import 'package:publishify/pages/auth/splash_screen.dart';
+import 'package:publishify/pages/auth/login_page.dart';
+import 'package:publishify/pages/auth/register_page.dart';
+import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/pages/main_layout.dart';
 import 'package:publishify/pages/upload/upload_book_page.dart';
 import 'package:publishify/pages/revision/revision_page.dart';

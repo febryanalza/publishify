@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/book_submission.dart';
+import 'package:publishify/services/upload_service.dart';
+import 'package:publishify/services/naskah_service.dart';
 
 class UploadFilePage extends StatefulWidget {
   final BookSubmission submission;
@@ -15,26 +19,71 @@ class UploadFilePage extends StatefulWidget {
 }
 
 class _UploadFilePageState extends State<UploadFilePage> {
+  File? _selectedFile;
   String? _selectedFileName;
+  int? _selectedFileSize;
   bool _isUploading = false;
 
   void _pickFile() async {
-    // TODO: Implement file picker
-    // For now, simulate file selection
-    setState(() {
-      _selectedFileName = 'contoh_buku.pdf';
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('File picker akan diimplementasikan dengan file_picker package'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      // Pick file dengan filter .doc dan .docx
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['doc', 'docx'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final fileSize = await file.length();
+        
+        // Check file size (max 50MB sesuai backend)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (fileSize > maxSize) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ukuran file terlalu besar! Maksimal 50MB'),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+          return;
+        }
+
+        setState(() {
+          _selectedFile = file;
+          _selectedFileName = result.files.single.name;
+          _selectedFileSize = fileSize;
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('File dipilih: $_selectedFileName'),
+            backgroundColor: AppTheme.primaryGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error memilih file: ${e.toString()}'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(2)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
   }
 
   void _handleSubmit() async {
-    if (_selectedFileName == null) {
+    if (_selectedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mohon pilih file terlebih dahulu'),
@@ -48,26 +97,78 @@ class _UploadFilePageState extends State<UploadFilePage> {
       _isUploading = true;
     });
 
-    // TODO: Implement actual upload to server
-    // Simulate upload delay
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Step 1: Upload file naskah
+      final uploadResponse = await UploadService.uploadNaskah(
+        file: _selectedFile!,
+        deskripsi: 'Naskah: ${widget.submission.title}',
+      );
 
-    if (!mounted) return;
+      if (!uploadResponse.sukses || uploadResponse.data == null) {
+        if (!mounted) return;
+        setState(() {
+          _isUploading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(uploadResponse.pesan),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+        return;
+      }
 
-    setState(() {
-      _isUploading = false;
-    });
+      // Step 2: Create naskah with uploaded file URL
+      final createResponse = await NaskahService.createNaskah(
+        judul: widget.submission.title,
+        subJudul: null,
+        sinopsis: widget.submission.synopsis,
+        idKategori: widget.submission.category,
+        idGenre: widget.submission.genre,
+        isbn: widget.submission.isbn.isNotEmpty ? widget.submission.isbn : null,
+        urlFile: uploadResponse.data!.url,
+        publik: false,
+      );
 
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Buku berhasil diupload!'),
-        backgroundColor: AppTheme.primaryGreen,
-      ),
-    );
+      if (!mounted) return;
 
-    // Navigate back to home
-    Navigator.of(context).popUntil((route) => route.isFirst);
+      setState(() {
+        _isUploading = false;
+      });
+
+      if (createResponse.sukses) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Naskah berhasil diupload!'),
+            backgroundColor: AppTheme.primaryGreen,
+          ),
+        );
+
+        // Navigate back to home
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(createResponse.pesan),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _isUploading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: ${e.toString()}'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
   }
 
   @override
@@ -75,50 +176,92 @@ class _UploadFilePageState extends State<UploadFilePage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Header
-            _buildHeader(),
+            Column(
+              children: [
+                // Header
+                _buildHeader(),
+                
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          'Upload File',
+                          style: AppTheme.headingMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pilih file naskah Anda (DOC/DOCX)',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.greyMedium,
+                            fontSize: 14,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Upload Area
+                        _buildUploadArea(),
+                        
+                        const Spacer(),
+                        
+                        // Submit Button
+                        _buildSubmitButton(),
+                        
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
             
-            // Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Text(
-                      'Upload File',
-                      style: AppTheme.headingMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
+            // Loading overlay
+            if (_isUploading)
+              Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Card(
+                    margin: const EdgeInsets.all(32),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                            color: AppTheme.primaryGreen,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Mengupload naskah...',
+                            style: AppTheme.bodyMedium.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Mohon tunggu sebentar',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: AppTheme.greyMedium,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Pilih File',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.greyMedium,
-                        fontSize: 14,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Upload Area
-                    _buildUploadArea(),
-                    
-                    const Spacer(),
-                    
-                    // Submit Button
-                    _buildSubmitButton(),
-                    
-                    const SizedBox(height: 20),
-                  ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -160,7 +303,7 @@ class _UploadFilePageState extends State<UploadFilePage> {
 
   Widget _buildUploadArea() {
     return GestureDetector(
-      onTap: _pickFile,
+      onTap: _isUploading ? null : _pickFile,
       child: Container(
         width: double.infinity,
         height: 200,
@@ -168,7 +311,7 @@ class _UploadFilePageState extends State<UploadFilePage> {
           color: AppTheme.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppTheme.greyDisabled,
+            color: _isUploading ? AppTheme.greyDisabled : AppTheme.greyDisabled,
             width: 2,
             style: BorderStyle.solid,
           ),
@@ -190,7 +333,7 @@ class _UploadFilePageState extends State<UploadFilePage> {
                   ),
                 ),
                 child: const Icon(
-                  Icons.add,
+                  Icons.upload_file,
                   color: AppTheme.primaryGreen,
                   size: 32,
                 ),
@@ -205,7 +348,7 @@ class _UploadFilePageState extends State<UploadFilePage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'PDF, DOC, DOCX (Max 10MB)',
+                'DOC, DOCX (Max 50MB)',
                 style: AppTheme.bodySmall.copyWith(
                   color: AppTheme.greyMedium,
                   fontSize: 12,
@@ -226,18 +369,30 @@ class _UploadFilePageState extends State<UploadFilePage> {
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: _pickFile,
-                child: Text(
-                  'Ganti File',
-                  style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.primaryGreen,
-                    fontSize: 14,
+              if (_selectedFileSize != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _formatFileSize(_selectedFileSize!),
+                  style: AppTheme.bodySmall.copyWith(
+                    color: AppTheme.greyMedium,
+                    fontSize: 12,
                   ),
                 ),
-              ),
+              ],
+              const SizedBox(height: 8),
+              if (!_isUploading)
+                TextButton(
+                  onPressed: _pickFile,
+                  child: Text(
+                    'Ganti File',
+                    style: AppTheme.bodyMedium.copyWith(
+                      color: AppTheme.primaryGreen,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
             ],
           ],
         ),

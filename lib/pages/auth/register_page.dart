@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/pages/success_page.dart';
+import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/services/auth_service.dart';
 import 'package:publishify/models/auth_models.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/pages/login_page.dart';
+import 'package:publishify/pages/auth/login_page.dart';
 import 'package:publishify/pages/main_layout.dart';
 import 'package:publishify/services/auth_service.dart';
 

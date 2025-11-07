@@ -100,4 +100,107 @@ class NaskahService {
       };
     }
   }
+
+  /// Create new manuscript (naskah)
+  /// POST /api/naskah
+  static Future<CreateNaskahResponse> createNaskah({
+    required String judul,
+    String? subJudul,
+    required String sinopsis,
+    required String idKategori,
+    required String idGenre,
+    String? isbn,
+    int? jumlahHalaman,
+    int? jumlahKata,
+    String? urlSampul,
+    String? urlFile,
+    bool publik = false,
+  }) async {
+    try {
+      // Get access token from cache
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return CreateNaskahResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah');
+
+      // Build request body
+      final Map<String, dynamic> body = {
+        'judul': judul,
+        'sinopsis': sinopsis,
+        'idKategori': idKategori,
+        'idGenre': idGenre,
+        'publik': publik,
+      };
+
+      if (subJudul != null && subJudul.isNotEmpty) {
+        body['subJudul'] = subJudul;
+      }
+
+      if (isbn != null && isbn.isNotEmpty) {
+        body['isbn'] = isbn;
+      }
+
+      if (jumlahHalaman != null) {
+        body['jumlahHalaman'] = jumlahHalaman;
+      }
+
+      if (jumlahKata != null) {
+        body['jumlahKata'] = jumlahKata;
+      }
+
+      if (urlSampul != null && urlSampul.isNotEmpty) {
+        body['urlSampul'] = urlSampul;
+      }
+
+      if (urlFile != null && urlFile.isNotEmpty) {
+        body['urlFile'] = urlFile;
+      }
+
+      // Make API request
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return CreateNaskahResponse.fromJson(responseData);
+    } catch (e) {
+      // Return error response
+      return CreateNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+}
+
+/// Response for creating naskah
+class CreateNaskahResponse {
+  final bool sukses;
+  final String pesan;
+  final NaskahData? data;
+
+  CreateNaskahResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data,
+  });
+
+  factory CreateNaskahResponse.fromJson(Map<String, dynamic> json) {
+    return CreateNaskahResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+      data: json['data'] != null ? NaskahData.fromJson(json['data']) : null,
+    );
+  }
 }
