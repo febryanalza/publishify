@@ -101,6 +101,43 @@ class NaskahService {
     }
   }
 
+  /// Get published manuscripts (latest 10) - PUBLIC endpoint
+  /// GET /api/naskah?status=diterbitkan&limit=10&urutkan=dibuatPada&arah=desc
+  static Future<NaskahListResponse> getNaskahTerbit({
+    int limit = 10,
+  }) async {
+    try {
+      // Build URL with query parameters
+      final queryParams = {
+        'status': 'diterbitkan',
+        'limit': limit.toString(),
+        'urutkan': 'dibuatPada',
+        'arah': 'desc',
+        'halaman': '1',
+      };
+
+      final uri = Uri.parse('$baseUrl/api/naskah')
+          .replace(queryParameters: queryParams);
+
+      // Make API request (PUBLIC, no auth required)
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+      return NaskahListResponse.fromJson(responseData);
+    } catch (e) {
+      // Return error response
+      return NaskahListResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
   /// Create new manuscript (naskah)
   /// POST /api/naskah
   static Future<CreateNaskahResponse> createNaskah({
@@ -177,6 +214,76 @@ class NaskahService {
     } catch (e) {
       // Return error response
       return CreateNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Get all manuscripts with full options (for list page)
+  /// GET /api/naskah/penulis/saya
+  static Future<NaskahListResponse> getAllNaskah({
+    int halaman = 1,
+    int limit = 20,
+    String? cari,
+    String? status,
+    String? idKategori,
+    String? idGenre,
+    String urutkan = 'dibuatPada',  // dibuatPada, judul, status, jumlahHalaman
+    String arah = 'desc',  // asc, desc
+  }) async {
+    try {
+      // Get access token from cache
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return NaskahListResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      // Build URL with query parameters
+      final queryParams = {
+        'halaman': halaman.toString(),
+        'limit': limit.toString(),
+        'urutkan': urutkan,
+        'arah': arah,
+      };
+      
+      if (cari != null && cari.isNotEmpty) {
+        queryParams['cari'] = cari;
+      }
+      
+      if (status != null && status.isNotEmpty) {
+        queryParams['status'] = status;
+      }
+      
+      if (idKategori != null && idKategori.isNotEmpty) {
+        queryParams['idKategori'] = idKategori;
+      }
+      
+      if (idGenre != null && idGenre.isNotEmpty) {
+        queryParams['idGenre'] = idGenre;
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/penulis/saya')
+          .replace(queryParameters: queryParams);
+
+      // Make API request
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+      return NaskahListResponse.fromJson(responseData);
+    } catch (e) {
+      // Return error response
+      return NaskahListResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
       );

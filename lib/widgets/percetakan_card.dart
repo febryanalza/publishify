@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/utils/image_helper.dart';
 import 'package:publishify/models/percetakan.dart';
 
 class PercetakanCard extends StatelessWidget {
@@ -40,7 +39,7 @@ class PercetakanCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     Image.network(
-                      ImageHelper.getFullImageUrl(percetakan.imageUrl),
+                      percetakan.imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(

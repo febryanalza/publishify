@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/utils/image_helper.dart';
 import 'package:publishify/models/print_item.dart';
+import 'package:publishify/widgets/network_image_widget.dart';
 
 class PrintCard extends StatelessWidget {
   final PrintItem item;
@@ -63,7 +63,7 @@ class PrintCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  ImageHelper.getFullImageUrl(item.imageUrl),
+                  item.imageUrl,
                   width: 80,
                   height: 120,
                   fit: BoxFit.cover,

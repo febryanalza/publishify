@@ -1,43 +1,36 @@
 // Model untuk Submit Buku Baru
+// Sesuai dengan backend DTO: BuatNaskahDto
 class BookSubmission {
-  final String title;
-  final String authorName;
-  final String publishYear;
-  final String isbn;
-  final String category;
-  final String genre;
-  final String synopsis;
-  final String? filePath;
+  final String title;          // judul (wajib, min 3, max 200)
+  final String synopsis;       // sinopsis (wajib, min 50, max 2000)
+  final String category;       // idKategori (wajib, UUID)
+  final String genre;          // idGenre (wajib, UUID)
+  final String? isbn;          // isbn (optional)
+  final String? filePath;      // urlFile (optional)
 
   BookSubmission({
     required this.title,
-    required this.authorName,
-    required this.publishYear,
-    required this.isbn,
+    required this.synopsis,
     required this.category,
     required this.genre,
-    required this.synopsis,
+    this.isbn,
     this.filePath,
   });
 
   BookSubmission copyWith({
     String? title,
-    String? authorName,
-    String? publishYear,
-    String? isbn,
+    String? synopsis,
     String? category,
     String? genre,
-    String? synopsis,
+    String? isbn,
     String? filePath,
   }) {
     return BookSubmission(
       title: title ?? this.title,
-      authorName: authorName ?? this.authorName,
-      publishYear: publishYear ?? this.publishYear,
-      isbn: isbn ?? this.isbn,
+      synopsis: synopsis ?? this.synopsis,
       category: category ?? this.category,
       genre: genre ?? this.genre,
-      synopsis: synopsis ?? this.synopsis,
+      isbn: isbn ?? this.isbn,
       filePath: filePath ?? this.filePath,
     );
   }

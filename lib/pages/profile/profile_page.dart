@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/dummy_data.dart';
-import 'package:publishify/utils/image_helper.dart';
 import 'package:publishify/models/user_profile.dart';
 import 'package:publishify/widgets/profile/profile_widgets.dart';
 import 'package:publishify/services/auth_service.dart';
@@ -9,6 +8,7 @@ import 'package:publishify/services/profile_service.dart';
 import 'package:publishify/services/naskah_service.dart';
 import 'package:publishify/models/naskah_models.dart';
 import 'package:publishify/pages/profile/edit_profile_page.dart';
+import 'package:publishify/widgets/network_image_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -289,47 +289,10 @@ class _ProfilePageState extends State<ProfilePage> {
           : Column(
         children: [
           // Profile Picture
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.yellow,
-                width: 3,
-              ),
-            ),
-            child: ClipOval(
-              child: Image.network(
-                ImageHelper.getFullImageUrl(_userAvatar.isNotEmpty ? _userAvatar : _profile.photoUrl),
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
-                          : null,
-                      strokeWidth: 2,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppTheme.primaryGreen,
-                      ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppTheme.greyLight,
-                    child: const Icon(
-                      Icons.person,
-                      size: 50,
-                      color: AppTheme.greyMedium,
-                    ),
-                  );
-                },
-              ),
-            ),
+          AvatarImage(
+            urlAvatar: _userAvatar.isNotEmpty ? _userAvatar : _profile.photoUrl,
+            size: 100,
+            fallbackText: _userName,
           ),
           
           const SizedBox(height: 16),
@@ -571,27 +534,14 @@ class _ProfilePageState extends State<ProfilePage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Cover image or placeholder
-                Container(
+                // Cover image using SampulBukuImage
+                SizedBox(
                   width: 60,
                   height: 80,
-                  decoration: BoxDecoration(
-                    color: AppTheme.greyLight,
+                  child: SampulBukuImage(
+                    urlSampul: naskah.urlSampul,
                     borderRadius: BorderRadius.circular(8),
-                    image: naskah.urlSampul != null
-                        ? DecorationImage(
-                            image: NetworkImage(ImageHelper.getFullImageUrl(naskah.urlSampul)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
                   ),
-                  child: naskah.urlSampul == null
-                      ? const Icon(
-                          Icons.book,
-                          color: AppTheme.greyMedium,
-                          size: 32,
-                        )
-                      : null,
                 ),
                 const SizedBox(width: 16),
                 // Naskah info

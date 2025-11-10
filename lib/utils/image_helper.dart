@@ -1,51 +1,72 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Helper class untuk mengelola URL gambar dari backend
+/// Helper untuk menangani URL gambar dari backend
 class ImageHelper {
-  /// Mendapatkan URL lengkap untuk gambar
-  /// 
-  /// Jika urlPath sudah berupa URL lengkap (http/https), langsung return
-  /// Jika urlPath adalah path relatif (/storage/...), gabungkan dengan BASE_URL
+  /// Base URL backend dari environment
+  static String get _baseUrl {
+    final url = dotenv.env['BASE_URL'] ?? 'http://10.0.2.2:4000';
+    // Remove trailing slash jika ada
+    return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  }
+
+  /// Mengkonversi relative path menjadi full URL
   /// 
   /// Contoh:
-  /// - Input: "/storage/images/photo.jpg"
-  /// - Output: "http://10.0.2.2:4000/storage/images/photo.jpg"
-  static String getFullImageUrl(String? urlPath) {
-    if (urlPath == null || urlPath.isEmpty) {
+  /// - Input: `/uploads/sampul/2025-11-04_lukisan_a6011cc09612df7e.jpg`
+  /// - Output: `http://10.0.2.2:4000/uploads/sampul/2025-11-04_lukisan_a6011cc09612df7e.jpg`
+  /// 
+  /// Jika input sudah full URL (dimulai dengan http/https), langsung return
+  static String getFullImageUrl(String? relativePath) {
+    if (relativePath == null || relativePath.isEmpty) {
       return '';
     }
 
-    // Jika sudah URL lengkap (http/https), langsung return
-    if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) {
-      return urlPath;
+    // Jika sudah full URL, return as is
+    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+      return relativePath;
     }
 
-    // Ambil BASE_URL dari .env
-    final baseUrl = dotenv.env['BASE_URL'] ?? 'http://10.0.2.2:4000';
+    // Tambahkan leading slash jika tidak ada
+    final path = relativePath.startsWith('/') ? relativePath : '/$relativePath';
     
-    // Pastikan baseUrl tidak diakhiri dengan /
-    final cleanBaseUrl = baseUrl.endsWith('/') 
-        ? baseUrl.substring(0, baseUrl.length - 1)
-        : baseUrl;
-    
-    // Pastikan path diawali dengan /
-    final cleanPath = urlPath.startsWith('/') 
-        ? urlPath 
-        : '/$urlPath';
-
-    return '$cleanBaseUrl$cleanPath';
+    // Gabungkan base URL dengan path
+    return '$_baseUrl$path';
   }
 
-  /// Cek apakah URL gambar valid
-  static bool isValidImageUrl(String? urlPath) {
-    if (urlPath == null || urlPath.isEmpty) {
+  /// Check apakah URL valid dan bisa digunakan
+  static bool isValidImageUrl(String? url) {
+    if (url == null || url.isEmpty) {
       return false;
     }
-    return true;
+
+    // Cek apakah URL atau path valid
+    return url.isNotEmpty && 
+           (url.startsWith('http://') || 
+            url.startsWith('https://') || 
+            url.startsWith('/uploads/'));
   }
 
-  /// Mendapatkan placeholder image URL
-  static String getPlaceholderUrl() {
-    return 'https://via.placeholder.com/300x400?text=No+Image';
+  /// Get full URL untuk sampul buku
+  static String? getSampulUrl(String? urlSampul) {
+    if (!isValidImageUrl(urlSampul)) {
+      return null;
+    }
+    return getFullImageUrl(urlSampul);
+  }
+
+  /// Get full URL untuk file naskah
+  static String? getNaskahUrl(String? urlFile) {
+    if (urlFile == null || urlFile.isEmpty) {
+      return null;
+    }
+    return getFullImageUrl(urlFile);
+  }
+
+  /// Get full URL untuk avatar/profile picture
+  static String? getAvatarUrl(String? urlAvatar) {
+    if (!isValidImageUrl(urlAvatar)) {
+      return null;
+    }
+    return getFullImageUrl(urlAvatar);
   }
 }

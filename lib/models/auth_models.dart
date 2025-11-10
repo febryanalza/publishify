@@ -96,6 +96,7 @@ class LoginRequest {
     return {
       'email': email,
       'kataSandi': kataSandi,
+      'platform': 'mobile',
     };
   }
 }

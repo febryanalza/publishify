@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/book.dart';
-import 'package:publishify/utils/image_helper.dart';
+import 'package:publishify/widgets/network_image_widget.dart';
 
 class BookCard extends StatelessWidget {
   final Book book;
@@ -29,31 +29,16 @@ class BookCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Book Cover/Thumbnail
-            Container(
+            // Book Cover/Thumbnail - Gunakan SampulBukuImage
+            SizedBox(
               height: 140,
-              decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
+              child: SampulBukuImage(
+                urlSampul: book.imageUrl,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
                 ),
               ),
-              child: book.imageUrl != null
-                  ? ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                      child: Image.network(
-                        ImageHelper.getFullImageUrl(book.imageUrl),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholder();
-                        },
-                      ),
-                    )
-                  : _buildPlaceholder(),
             ),
             
             // Book Info
@@ -97,16 +82,6 @@ class BookCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Center(
-      child: Icon(
-        Icons.book,
-        size: 48,
-        color: AppTheme.greyMedium.withValues(alpha: 0.3),
       ),
     );
   }

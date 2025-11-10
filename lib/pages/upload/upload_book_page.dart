@@ -17,13 +17,11 @@ class UploadBookPage extends StatefulWidget {
 class _UploadBookPageState extends State<UploadBookPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _authorController = TextEditingController();
-  final _publishYearController = TextEditingController();
   final _isbnController = TextEditingController();
   final _synopsisController = TextEditingController();
   
-  String? _selectedCategory;
-  String? _selectedGenre;
+  String? _selectedCategoryId;  // Menyimpan ID (UUID)
+  String? _selectedGenreId;      // Menyimpan ID (UUID)
   List<Kategori> _kategoris = [];
   List<Genre> _genres = [];
   bool _isLoadingData = true;
@@ -80,8 +78,6 @@ class _UploadBookPageState extends State<UploadBookPage> {
   @override
   void dispose() {
     _titleController.dispose();
-    _authorController.dispose();
-    _publishYearController.dispose();
     _isbnController.dispose();
     _synopsisController.dispose();
     super.dispose();
@@ -89,7 +85,7 @@ class _UploadBookPageState extends State<UploadBookPage> {
 
   void _handleNext() {
     if (_formKey.currentState!.validate()) {
-      if (_selectedCategory == null) {
+      if (_selectedCategoryId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Mohon pilih kategori'),
@@ -99,7 +95,7 @@ class _UploadBookPageState extends State<UploadBookPage> {
         return;
       }
 
-      if (_selectedGenre == null) {
+      if (_selectedGenreId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Mohon pilih genre'),
@@ -111,12 +107,10 @@ class _UploadBookPageState extends State<UploadBookPage> {
 
       final submission = BookSubmission(
         title: _titleController.text,
-        authorName: _authorController.text,
-        publishYear: _publishYearController.text,
-        isbn: _isbnController.text,
-        category: _selectedCategory!,
-        genre: _selectedGenre!,
         synopsis: _synopsisController.text,
+        category: _selectedCategoryId!,  // Kirim ID (UUID)
+        genre: _selectedGenreId!,         // Kirim ID (UUID)
+        isbn: _isbnController.text.isEmpty ? null : _isbnController.text,
       );
 
       // Navigate to upload file page
@@ -164,19 +158,11 @@ class _UploadBookPageState extends State<UploadBookPage> {
                           if (value == null || value.isEmpty) {
                             return 'Judul harus diisi';
                           }
-                          return null;
-                        },
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Nama Penulis
-                      _buildTextField(
-                        label: 'Nama Penulis',
-                        controller: _authorController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Nama penulis harus diisi';
+                          if (value.trim().length < 3) {
+                            return 'Judul minimal 3 karakter';
+                          }
+                          if (value.trim().length > 200) {
+                            return 'Judul maksimal 200 karakter';
                           }
                           return null;
                         },
@@ -184,37 +170,11 @@ class _UploadBookPageState extends State<UploadBookPage> {
                       
                       const SizedBox(height: 16),
                       
-                      // Tahun Penulisan & Jumlah BAB Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              label: 'Tahun Penulisan',
-                              controller: _publishYearController,
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Tahun harus diisi';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildTextField(
-                              label: 'Jumlah BAB',
-                              controller: _isbnController,
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Jumlah BAB harus diisi';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ],
+                      // ISBN (Optional)
+                      _buildTextField(
+                        label: 'ISBN (opsional)',
+                        controller: _isbnController,
+                        validator: null, // Optional field
                       ),
                       
                       const SizedBox(height: 16),
@@ -401,13 +361,13 @@ class _UploadBookPageState extends State<UploadBookPage> {
                   ),
                   items: _kategoris.map((kategori) {
                     return DropdownMenuItem(
-                      value: kategori.nama,
-                      child: Text(kategori.nama),
+                      value: kategori.id,  // Simpan ID (UUID)
+                      child: Text(kategori.nama),  // Tampilkan nama
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedCategory = value;
+                      _selectedCategoryId = value;  // Simpan ID
                     });
                   },
                   icon: const Icon(
@@ -472,13 +432,13 @@ class _UploadBookPageState extends State<UploadBookPage> {
                   ),
                   items: _genres.map((genre) {
                     return DropdownMenuItem(
-                      value: genre.nama,
-                      child: Text(genre.nama),
+                      value: genre.id,  // Simpan ID (UUID)
+                      child: Text(genre.nama),  // Tampilkan nama
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedGenre = value;
+                      _selectedGenreId = value;  // Simpan ID
                     });
                   },
                   icon: const Icon(
@@ -510,6 +470,12 @@ class _UploadBookPageState extends State<UploadBookPage> {
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Sinopsis harus diisi';
+            }
+            if (value.trim().length < 50) {
+              return 'Sinopsis minimal 50 karakter';
+            }
+            if (value.trim().length > 2000) {
+              return 'Sinopsis maksimal 2000 karakter';
             }
             return null;
           },

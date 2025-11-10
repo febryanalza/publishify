@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/book_submission.dart';
 import 'package:publishify/services/upload_service.dart';
@@ -119,14 +120,20 @@ class _UploadFilePageState extends State<UploadFilePage> {
       }
 
       // Step 2: Create naskah with uploaded file URL
+      // Build full URL from relative path (backend returns /uploads/...)
+      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
+      final fileUrl = uploadResponse.data!.url.startsWith('http')
+          ? uploadResponse.data!.url
+          : '$baseUrl${uploadResponse.data!.url}';
+      
       final createResponse = await NaskahService.createNaskah(
         judul: widget.submission.title,
         subJudul: null,
         sinopsis: widget.submission.synopsis,
         idKategori: widget.submission.category,
         idGenre: widget.submission.genre,
-        isbn: widget.submission.isbn.isNotEmpty ? widget.submission.isbn : null,
-        urlFile: uploadResponse.data!.url,
+        isbn: widget.submission.isbn,
+        urlFile: fileUrl,  // Full URL: http://localhost:4000/uploads/naskah/file.docx
         publik: false,
       );
 

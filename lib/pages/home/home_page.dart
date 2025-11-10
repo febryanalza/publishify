@@ -52,17 +52,16 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadNaskahFromAPI() async {
     try {
-      // Get all naskah (no status filter to show all books)
-      final response = await NaskahService.getNaskahSaya(
-        halaman: 1,
-        limit: 20,
+      // Get published naskah only (latest 10) from PUBLIC endpoint
+      final response = await NaskahService.getNaskahTerbit(
+        limit: 10,
       );
 
       if (response.sukses && response.data != null && response.data!.isNotEmpty) {
         // Convert NaskahData to Book model
         _books = response.data!.map((naskah) {
           // Get author name from penulis data
-          String authorName = _userName.isNotEmpty ? _userName : 'Anda';
+          String authorName = _userName.isNotEmpty ? _userName : 'Anonim';
           if (naskah.penulis?.profilPenulis?.namaPena != null) {
             authorName = naskah.penulis!.profilPenulis!.namaPena;
           } else if (naskah.penulis?.profilPengguna?.namaTampilan != null) {
@@ -344,9 +343,22 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Buku Saya',
+                'Buku Terkini',
                 style: AppTheme.headingSmall.copyWith(
                   fontWeight: FontWeight.bold,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  // Navigate to naskah list page
+                  Navigator.pushNamed(context, '/naskah-list');
+                },
+                child: Text(
+                  'Lihat Semua',
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -366,7 +378,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Belum ada naskah',
+                        'Belum ada buku terbit',
                         style: AppTheme.bodyLarge.copyWith(
                           color: AppTheme.primaryDark,
                           fontWeight: FontWeight.w600,
@@ -374,7 +386,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Mulai menulis naskah pertamamu dengan\nmenekan tombol tambah naskah',
+                        'Buku yang sudah diterbitkan\nakan muncul di sini',
                         textAlign: TextAlign.center,
                         style: AppTheme.bodyMedium.copyWith(
                           color: AppTheme.greyMedium,
@@ -422,6 +434,9 @@ class _HomePageState extends State<HomePage> {
     } else if (action == 'print') {
       // Navigate to pilih percetakan page
       Navigator.pushNamed(context, '/pilih-percetakan');
+    } else if (action == 'list') {
+      // Navigate to naskah list page
+      Navigator.pushNamed(context, '/naskah-list');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

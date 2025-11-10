@@ -5,12 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:publishify/models/notifikasi_models.dart';
 
 class NotifikasiService {
-  static final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:3000';
+  static final String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:3000';
 
   // Helper untuk mendapatkan token
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('access_token');
+    return prefs.getString('accessToken');
   }
 
   // Helper untuk membuat headers dengan auth

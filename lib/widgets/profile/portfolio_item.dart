@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/utils/image_helper.dart';
 import 'package:publishify/models/user_profile.dart';
+import 'package:publishify/widgets/network_image_widget.dart';
 
 /// Reusable component untuk menampilkan portfolio item dengan loading placeholder
 class PortfolioItem extends StatelessWidget {
@@ -35,41 +35,24 @@ class PortfolioItem extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Portfolio image with loading placeholder
-              Container(
+              // Portfolio image - gunakan NetworkImageWidget
+              SizedBox(
                 width: 60,
                 height: 60,
-                decoration: BoxDecoration(
-                  color: AppTheme.greyLight,
+                child: NetworkImageWidget(
+                  imageUrl: portfolio.imageUrl,
+                  fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    ImageHelper.getFullImageUrl(portfolio.imageUrl),
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
-                          strokeWidth: 2,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppTheme.primaryGreen,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.book,
-                        color: AppTheme.greyMedium,
-                        size: 30,
-                      );
-                    },
+                  errorWidget: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.greyLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.book,
+                      color: AppTheme.greyMedium,
+                      size: 30,
+                    ),
                   ),
                 ),
               ),

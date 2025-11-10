@@ -8,6 +8,7 @@ import 'package:publishify/pages/upload/upload_book_page.dart';
 import 'package:publishify/pages/revision/revision_page.dart';
 import 'package:publishify/pages/print/print_page.dart';
 import 'package:publishify/pages/percetakan/pilih_percetakan_page.dart';
+import 'package:publishify/pages/naskah/naskah_list_page.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -22,6 +23,7 @@ class AppRoutes {
   static const String revisi = '/revisi';
   static const String print = '/print';
   static const String pilihPercetakan = '/pilih-percetakan';
+  static const String naskahList = '/naskah-list';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -34,6 +36,7 @@ class AppRoutes {
       revisi: (context) => const RevisionPage(),
       print: (context) => const PrintPage(),
       pilihPercetakan: (context) => const PilihPercetakanPage(),
+      naskahList: (context) => const NaskahListPage(),
     };
   }
 }

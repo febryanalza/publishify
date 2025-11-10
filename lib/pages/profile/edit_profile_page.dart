@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/services/profile_service.dart';
-import 'package:publishify/services/auth_service.dart';
 import 'package:publishify/models/update_profile_models.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -82,31 +81,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
     });
 
     try {
-      final loginData = await AuthService.getLoginData();
+      // Load profile from API (has complete data including telepon)
+      final profileResponse = await ProfileService.getProfile();
 
-      if (loginData != null && loginData.pengguna.profilPengguna != null) {
-        final profil = loginData.pengguna.profilPengguna!;
+      if (profileResponse.sukses && profileResponse.data != null) {
+        final profil = profileResponse.data!.profilPengguna;
+        final pengguna = profileResponse.data!;
 
         setState(() {
-          _namaDepanController.text = profil.namaDepan;
-          _namaBelakangController.text = profil.namaBelakang;
-          _namaTampilanController.text = profil.namaTampilan;
-          _bioController.text = profil.bio ?? '';
-          _alamatController.text = profil.alamat ?? '';
-          _kotaController.text = profil.kota ?? '';
-          _provinsiController.text = profil.provinsi ?? '';
-          _kodePosController.text = profil.kodePos ?? '';
-          _jenisKelamin = profil.jenisKelamin;
+          if (profil != null) {
+            _namaDepanController.text = profil.namaDepan;
+            _namaBelakangController.text = profil.namaBelakang;
+            _namaTampilanController.text = profil.namaTampilan;
+            _bioController.text = profil.bio ?? '';
+            _alamatController.text = profil.alamat ?? '';
+            _kotaController.text = profil.kota ?? '';
+            _provinsiController.text = profil.provinsi ?? '';
+            _kodePosController.text = profil.kodePos ?? '';
+            _jenisKelamin = profil.jenisKelamin;
 
-          if (profil.tanggalLahir != null) {
-            try {
-              _selectedDate = DateTime.parse(profil.tanggalLahir!);
-              _tanggalLahirController.text =
-                  '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}';
-            } catch (e) {
-              _tanggalLahirController.text = '';
+            if (profil.tanggalLahir != null) {
+              try {
+                _selectedDate = DateTime.parse(profil.tanggalLahir!);
+                _tanggalLahirController.text =
+                    '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}';
+              } catch (e) {
+                _tanggalLahirController.text = '';
+              }
             }
           }
+
+          // Load telepon from user data
+          _teleponController.text = pengguna.telepon ?? '';
         });
       }
     } catch (e) {
@@ -148,8 +154,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+        // Format untuk display (DD/MM/YYYY)
         _tanggalLahirController.text =
-            '${picked.day}/${picked.month}/${picked.year}';
+            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
       });
     }
   }
