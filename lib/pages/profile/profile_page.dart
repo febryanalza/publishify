@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/dummy_data.dart';
+import 'package:publishify/utils/image_helper.dart';
 import 'package:publishify/models/user_profile.dart';
 import 'package:publishify/widgets/profile/profile_widgets.dart';
 import 'package:publishify/services/auth_service.dart';
@@ -300,7 +301,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             child: ClipOval(
               child: Image.network(
-                _userAvatar.isNotEmpty ? _userAvatar : _profile.photoUrl,
+                ImageHelper.getFullImageUrl(_userAvatar.isNotEmpty ? _userAvatar : _profile.photoUrl),
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -579,7 +580,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     borderRadius: BorderRadius.circular(8),
                     image: naskah.urlSampul != null
                         ? DecorationImage(
-                            image: NetworkImage(naskah.urlSampul!),
+                            image: NetworkImage(ImageHelper.getFullImageUrl(naskah.urlSampul)),
                             fit: BoxFit.cover,
                           )
                         : null,

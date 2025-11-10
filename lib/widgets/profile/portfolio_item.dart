@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
+import 'package:publishify/utils/image_helper.dart';
 import 'package:publishify/models/user_profile.dart';
 
 /// Reusable component untuk menampilkan portfolio item dengan loading placeholder
@@ -45,7 +46,7 @@ class PortfolioItem extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    portfolio.imageUrl,
+                    ImageHelper.getFullImageUrl(portfolio.imageUrl),
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;

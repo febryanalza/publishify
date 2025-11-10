@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/book.dart';
+import 'package:publishify/utils/image_helper.dart';
 
 class BookCard extends StatelessWidget {
   final Book book;
@@ -45,7 +46,7 @@ class BookCard extends StatelessWidget {
                         topRight: Radius.circular(12),
                       ),
                       child: Image.network(
-                        book.imageUrl!,
+                        ImageHelper.getFullImageUrl(book.imageUrl),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return _buildPlaceholder();

@@ -159,7 +159,7 @@ class _UploadBookPageState extends State<UploadBookPage> {
                       const SizedBox(height: 8),
                       _buildTextField(
                         label: 'Judul',
-                        controller: _authorController,
+                        controller: _titleController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Judul harus diisi';
@@ -184,7 +184,7 @@ class _UploadBookPageState extends State<UploadBookPage> {
                       
                       const SizedBox(height: 16),
                       
-                      // Tahun Penulisan & Jaminan Usia Row
+                      // Tahun Penulisan & Jumlah BAB Row
                       Row(
                         children: [
                           Expanded(
@@ -203,11 +203,12 @@ class _UploadBookPageState extends State<UploadBookPage> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: _buildTextField(
-                              label: 'Jaminan Usia',
+                              label: 'Jumlah BAB',
                               controller: _isbnController,
+                              keyboardType: TextInputType.number,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'ISBN harus diisi';
+                                  return 'Jumlah BAB harus diisi';
                                 }
                                 return null;
                               },
