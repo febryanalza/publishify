@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -172,10 +173,46 @@ class AuthService {
     return null;
   }
 
-  /// Get user roles
+  /// Get user roles using helper method from UserData
   static Future<List<String>> getUserRoles() async {
+    final loginData = await getLoginData();
+    if (loginData != null) {
+      return loginData.pengguna.getActiveRoles();
+    }
+    
+    // Fallback: get from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     return prefs.getStringList(_keyPeran) ?? [];
+  }
+
+  /// Check if user has specific role
+  static Future<bool> hasRole(String role) async {
+    final loginData = await getLoginData();
+    if (loginData != null) {
+      return loginData.pengguna.hasRole(role);
+    }
+    
+    // Fallback: check from SharedPreferences
+    final roles = await getUserRoles();
+    return roles.contains(role);
+  }
+
+  /// Get primary role (first active role)
+  static Future<String?> getPrimaryRole() async {
+    final loginData = await getLoginData();
+    if (loginData != null) {
+      return loginData.pengguna.getPrimaryRole();
+    }
+    
+    // Fallback: get first role from SharedPreferences
+    final roles = await getUserRoles();
+    return roles.isNotEmpty ? roles.first : null;
+  }
+
+  /// Save user roles to SharedPreferences
+  static Future<void> saveUserRoles(List<String> roles) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_keyPeran, roles);
   }
 
   /// Get nama tampilan (display name)
@@ -221,7 +258,7 @@ class AuthService {
           // Regardless of API response, clear local data
         } catch (e) {
           // If API call fails, still proceed with local logout
-          print('Logout API error: $e');
+          printToConsole('Logout API error: $e');
         }
       }
       
@@ -270,4 +307,10 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+
+  // ====================================
+  // ENHANCED ROLE MANAGEMENT METHODS
+  // ====================================
+  // Methods updated to use UserData helper methods
+
 }

@@ -429,8 +429,8 @@ class _HomePageState extends State<HomePage> {
       // Navigate to upload book page
       Navigator.pushNamed(context, '/upload-book');
     } else if (action == 'revisi') {
-      // Navigate to revision page
-      Navigator.pushNamed(context, '/revisi');
+      // Navigate to review page (changed from revision)
+      Navigator.pushNamed(context, '/review');
     } else if (action == 'print') {
       // Navigate to pilih percetakan page
       Navigator.pushNamed(context, '/pilih-percetakan');

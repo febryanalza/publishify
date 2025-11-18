@@ -17,6 +17,7 @@ dependencies:
   http_parser: ^4.1.1
   path: ^1.9.0
   mime: ^2.0.0
+  socket_io_client: ^3.0.1  # Socket.io untuk real-time notifikasi
 
 dev_dependencies:
   flutter_test:

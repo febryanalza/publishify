@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/notifikasi_models.dart';
 import 'package:publishify/services/notifikasi_service.dart';
+import 'package:publishify/services/notifikasi_socket_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -22,10 +25,74 @@ class _NotificationsPageState extends State<NotificationsPage> {
   bool? _filterDibaca;
   String? _filterTipe;
 
+  // WebSocket
+  final _socketService = NotifikasiSocketService();
+  StreamSubscription? _notifikasiBaruSubscription;
+  StreamSubscription? _connectionStatusSubscription;
+  bool _isSocketConnected = false;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    _setupWebSocket();
+  }
+
+  /// Setup WebSocket connection dan listeners
+  void _setupWebSocket() {
+    // Connect to WebSocket
+    _socketService.connect();
+
+    // Listen to new notifications
+    _notifikasiBaruSubscription = _socketService.notifikasiBaru.listen((notifikasi) {
+      printToConsole('[NotificationsPage] New notification received via WebSocket');
+      
+      setState(() {
+        // Insert notifikasi baru di awal list
+        _notifications.insert(0, notifikasi);
+      });
+
+      // Show snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('📬 ${notifikasi.judul}'),
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'Lihat',
+              onPressed: () {
+                // Auto scroll to top
+                // You can add navigation to detail here
+              },
+            ),
+          ),
+        );
+      }
+    });
+
+    // Listen to connection status
+    _connectionStatusSubscription = _socketService.connectionStatus.listen((isConnected) {
+      setState(() {
+        _isSocketConnected = isConnected;
+      });
+
+      if (mounted && isConnected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🔗 Terhubung ke notifikasi real-time'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notifikasiBaruSubscription?.cancel();
+    _connectionStatusSubscription?.cancel();
+    // Don't disconnect socket, keep it alive for other pages
+    super.dispose();
   }
 
   Future<void> _loadData({bool refresh = false}) async {
@@ -43,12 +110,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
 
     try {
+      printToConsole('[NotificationsPage] Loading notifications - page: $_currentPage, limit: $_limit');
+      
       final response = await NotifikasiService.getNotifikasi(
         halaman: _currentPage,
         limit: _limit,
         dibaca: _filterDibaca,
         tipe: _filterTipe,
       );
+
+      printToConsole('[NotificationsPage] Response received - sukses: ${response.sukses}, data count: ${response.data?.length ?? 0}');
 
       if (response.sukses && response.data != null) {
         setState(() {
@@ -61,12 +132,36 @@ class _NotificationsPageState extends State<NotificationsPage> {
           _hasMore = response.data!.length == _limit;
         });
       } else {
+        final errorMsg = response.pesan ?? 'Gagal memuat notifikasi';
+        printToConsole('[NotificationsPage] Error: $errorMsg');
+        
         setState(() {
-          _errorMessage = response.pesan ?? 'Gagal memuat notifikasi';
+          _errorMessage = errorMsg;
           _isLoading = false;
         });
+
+        // Show snackbar for Unauthorized error
+        if (mounted && errorMsg.toLowerCase().contains('unauthorized')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('⚠️ Sesi login Anda telah berakhir. Silakan login kembali.'),
+              duration: const Duration(seconds: 4),
+              backgroundColor: Colors.red,
+              action: SnackBarAction(
+                label: 'Login',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Navigate to login page
+                  Navigator.of(context).pushReplacementNamed('/login');
+                },
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
+      printToConsole('[NotificationsPage] Exception: ${e.toString()}');
+      
       setState(() {
         _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
         _isLoading = false;
@@ -382,6 +477,31 @@ class _NotificationsPageState extends State<NotificationsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Connection status indicator
+          if (_isSocketConnected)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.circle, size: 8, color: Colors.greenAccent),
+                  SizedBox(width: 6),
+                  Text(
+                    'Real-time aktif',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Text(
@@ -522,7 +642,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             Icon(
               Icons.notifications_none,
               size: 80,
-              color: AppTheme.greyMedium.withOpacity(0.5),
+              color: AppTheme.greyMedium.withValues(alpha:0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -595,7 +715,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           side: notification.dibaca
               ? BorderSide.none
               : BorderSide(
-                  color: AppTheme.primaryGreen.withOpacity(0.3),
+                  color: AppTheme.primaryGreen.withValues(alpha:0.3),
                   width: 2,
                 ),
         ),
@@ -612,7 +732,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: tipeColor.withOpacity(0.1),
+                    color: tipeColor.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(

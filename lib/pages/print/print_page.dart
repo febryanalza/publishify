@@ -206,7 +206,7 @@ class _PrintPageState extends State<PrintPage> {
                 selected: isSelected,
                 onSelected: (_) => _handleFilterChange(filter),
                 backgroundColor: AppTheme.backgroundWhite,
-                selectedColor: AppTheme.primaryGreen.withOpacity(0.2),
+                selectedColor: AppTheme.primaryGreen.withValues(alpha:0.2),
                 labelStyle: AppTheme.bodySmall.copyWith(
                   color: isSelected ? AppTheme.primaryGreen : AppTheme.greyText,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -387,7 +387,7 @@ class _PrintDetailDialog extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: _getStatusColor().withOpacity(0.1),
+                  color: _getStatusColor().withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

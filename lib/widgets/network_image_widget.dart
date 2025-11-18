@@ -93,7 +93,7 @@ class NetworkImageWidget extends StatelessWidget {
               Icon(
                 Icons.image_not_supported,
                 size: 40,
-                color: AppTheme.greyMedium.withOpacity(0.5),
+                color: AppTheme.greyMedium.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 8),
               Text(
@@ -146,7 +146,7 @@ class SampulBukuImage extends StatelessWidget {
             Icon(
               Icons.book,
               size: 50,
-              color: AppTheme.greyMedium.withOpacity(0.5),
+              color: AppTheme.greyMedium.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 8),
             Text(
@@ -220,7 +220,7 @@ class AvatarImage extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withOpacity(0.1),
+        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Center(

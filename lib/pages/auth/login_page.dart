@@ -4,6 +4,7 @@ import 'package:publishify/pages/auth/register_page.dart';
 import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/services/auth_service.dart';
 import 'package:publishify/models/auth_models.dart';
+import 'package:publishify/controllers/role_navigation_controller.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -61,20 +62,22 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
         if (response.sukses) {
-          // Get user data from response
+          // Use role-based navigation after successful login
+          await RoleNavigationController.navigateAfterLogin(context, response);
+          
+          // Show welcome snackbar
           final userName = response.data?.pengguna.profilPengguna?.namaTampilan ?? 
                           '${response.data?.pengguna.profilPengguna?.namaDepan ?? ''} ${response.data?.pengguna.profilPengguna?.namaBelakang ?? ''}'.trim();
-
-          // Navigate to success page
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SuccessPage(
-                userName: userName,
-                message: 'Selamat datang kembali!',
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Selamat datang kembali, $userName!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
               ),
-            ),
-          );
+            );
+          }
         } else {
           // Show error message
           ScaffoldMessenger.of(context).showSnackBar(

@@ -1,16 +1,17 @@
 import 'dart:convert';
+import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:publishify/models/notifikasi_models.dart';
 
 class NotifikasiService {
-  static final String baseUrl = dotenv.env['API_URL'] ?? 'http://localhost:3000';
+  static final String baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
 
   // Helper untuk mendapatkan token
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('accessToken');
+    return prefs.getString('access_token'); // Fixed: use correct key with underscore
   }
 
   // Helper untuk membuat headers dengan auth
@@ -62,20 +63,44 @@ class NotifikasiService {
       final uri = Uri.parse('$baseUrl/api/notifikasi')
           .replace(queryParameters: queryParams);
 
+      printToConsole('[NotifikasiService] GET $uri');
+
       final headers = await _getHeaders();
+      
+      // Debug: Check if token exists
+      final token = await _getToken();
+      printToConsole('[NotifikasiService] Token exists: ${token != null}, Token length: ${token?.length ?? 0}');
+      if (token != null && token.isNotEmpty) {
+        printToConsole('[NotifikasiService] Token preview: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+      }
+
       final response = await http.get(uri, headers: headers);
+
+      printToConsole('[NotifikasiService] Response status: ${response.statusCode}');
+      printToConsole('[NotifikasiService] Response body: ${response.body}');
 
       final jsonResponse = json.decode(response.body);
 
       if (response.statusCode == 200) {
         return NotifikasiListResponse.fromJson(jsonResponse);
       } else {
+        // Handle unauthorized or other errors
+        String errorMessage = jsonResponse['pesan'] ?? 'Gagal mengambil notifikasi';
+        
+        if (response.statusCode == 401) {
+          errorMessage = 'Unauthorized - Token tidak valid atau sudah kedaluwarsa';
+        }
+
+        printToConsole('[NotifikasiService] Error: $errorMessage');
+
         return NotifikasiListResponse(
           sukses: false,
-          pesan: jsonResponse['pesan'] ?? 'Gagal mengambil notifikasi',
+          pesan: errorMessage,
         );
       }
     } catch (e) {
+      printToConsole('[NotifikasiService] Exception: ${e.toString()}');
+      
       return NotifikasiListResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',

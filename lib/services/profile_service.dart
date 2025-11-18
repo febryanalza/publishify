@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/models/update_profile_models.dart';
@@ -151,7 +152,7 @@ class ProfileService {
         await prefs.setString('roles', jsonEncode(roles));
       }
     } catch (e) {
-      print('Error saving profile to cache: $e');
+      printToConsole('Error saving profile to cache: $e');
     }
   }
 
@@ -162,7 +163,7 @@ class ProfileService {
       await prefs.remove('profile_data');
       await prefs.remove('profile_cache_time');
     } catch (e) {
-      print('Error clearing profile cache: $e');
+      printToConsole('Error clearing profile cache: $e');
     }
   }
 
@@ -295,7 +296,7 @@ class ProfileService {
       }
     } catch (e) {
       // If error updating user_data, continue anyway
-      print('Error updating user_data cache: $e');
+      printToConsole('Error updating user_data cache: $e');
     }
   }
 }

@@ -28,7 +28,7 @@ class ImageTestPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.yellow.withOpacity(0.2),
+                color: AppTheme.yellow.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.yellow),
               ),
@@ -185,7 +185,7 @@ class ImageTestPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withOpacity(0.1),
+                color: AppTheme.primaryGreen.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.primaryGreen),
               ),

@@ -101,12 +101,16 @@ class NaskahReview {
   final String judul;
   final String status;
   final PenulisReview? penulis;
+  final KategoriReview? kategori;
+  final GenreReview? genre;
 
   NaskahReview({
     required this.id,
     required this.judul,
     required this.status,
     this.penulis,
+    this.kategori,
+    this.genre,
   });
 
   factory NaskahReview.fromJson(Map<String, dynamic> json) {
@@ -117,6 +121,48 @@ class NaskahReview {
       penulis: json['penulis'] != null 
           ? PenulisReview.fromJson(json['penulis']) 
           : null,
+      kategori: json['kategori'] != null
+          ? KategoriReview.fromJson(json['kategori'])
+          : null,
+      genre: json['genre'] != null
+          ? GenreReview.fromJson(json['genre'])
+          : null,
+    );
+  }
+}
+
+// Model untuk Kategori dalam Review
+class KategoriReview {
+  final String id;
+  final String nama;
+
+  KategoriReview({
+    required this.id,
+    required this.nama,
+  });
+
+  factory KategoriReview.fromJson(Map<String, dynamic> json) {
+    return KategoriReview(
+      id: json['id'] ?? '',
+      nama: json['nama'] ?? '',
+    );
+  }
+}
+
+// Model untuk Genre dalam Review
+class GenreReview {
+  final String id;
+  final String nama;
+
+  GenreReview({
+    required this.id,
+    required this.nama,
+  });
+
+  factory GenreReview.fromJson(Map<String, dynamic> json) {
+    return GenreReview(
+      id: json['id'] ?? '',
+      nama: json['nama'] ?? '',
     );
   }
 }
@@ -224,6 +270,7 @@ class FeedbackData {
   final int? halaman;
   final String komentar;
   final String dibuatPada;
+  final EditorReview? editor;
 
   FeedbackData({
     required this.id,
@@ -232,6 +279,7 @@ class FeedbackData {
     this.halaman,
     required this.komentar,
     required this.dibuatPada,
+    this.editor,
   });
 
   factory FeedbackData.fromJson(Map<String, dynamic> json) {
@@ -242,8 +290,14 @@ class FeedbackData {
       halaman: json['halaman'],
       komentar: json['komentar'] ?? '',
       dibuatPada: json['dibuatPada'] ?? '',
+      editor: json['editor'] != null
+          ? EditorReview.fromJson(json['editor'])
+          : null,
     );
   }
+
+  // Helper getter untuk mengakses isi feedback
+  String get isi => komentar;
 }
 
 // Model untuk Detail Review Response

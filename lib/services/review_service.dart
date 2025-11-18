@@ -5,63 +5,11 @@ import 'package:publishify/models/review_models.dart';
 import 'package:publishify/services/auth_service.dart';
 
 /// Review Service
-/// Handles all review/revision related API calls
+/// Handles all review related API calls
 /// Khusus untuk user PENULIS - untuk melihat review/feedback dari naskah mereka
 class ReviewService {
   // Get base URL from .env
   static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
-
-  /// Get list of reviews for a specific manuscript (naskah)
-  /// GET /api/review/naskah/:idNaskah?halaman=1&limit=20
-  /// 
-  /// Endpoint ini bisa diakses oleh:
-  /// - Penulis (owner naskah)
-  /// - Editor
-  /// - Admin
-  static Future<ReviewListResponse> getReviewByNaskahId({
-    required String idNaskah,
-    int halaman = 1,
-    int limit = 20,
-  }) async {
-    try {
-      // Get access token from cache
-      final accessToken = await AuthService.getAccessToken();
-      
-      if (accessToken == null) {
-        return ReviewListResponse(
-          sukses: false,
-          pesan: 'Token tidak ditemukan. Silakan login kembali.',
-        );
-      }
-
-      // Build URL with query parameters
-      final queryParams = {
-        'halaman': halaman.toString(),
-        'limit': limit.toString(),
-      };
-
-      final uri = Uri.parse('$baseUrl/api/review/naskah/$idNaskah')
-          .replace(queryParameters: queryParams);
-
-      // Make API request
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $accessToken',
-        },
-      );
-
-      final responseData = jsonDecode(response.body);
-      return ReviewListResponse.fromJson(responseData);
-    } catch (e) {
-      // Return error response
-      return ReviewListResponse(
-        sukses: false,
-        pesan: 'Terjadi kesalahan: ${e.toString()}',
-      );
-    }
-  }
 
   /// Get detail review by ID (including all feedback)
   /// GET /api/review/:id
@@ -104,6 +52,55 @@ class ReviewService {
     }
   }
 
+  /// Update review status or notes
+  /// PUT /api/review/:id
+  /// 
+  /// Untuk penulis: biasanya tidak bisa update review
+  /// Tapi bisa digunakan untuk respond feedback (future feature)
+  static Future<ReviewDetailResponse> updateReview({
+    required String idReview,
+    String? status,
+    String? catatan,
+  }) async {
+    try {
+      // Get access token from cache
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return ReviewDetailResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/review/$idReview');
+
+      // Build request body
+      final Map<String, dynamic> body = {};
+      if (status != null) body['status'] = status;
+      if (catatan != null) body['catatan'] = catatan;
+
+      // Make API request
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return ReviewDetailResponse.fromJson(responseData);
+    } catch (e) {
+      // Return error response
+      return ReviewDetailResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
   /// Get all reviews for current user's manuscripts
   /// Untuk penulis: ambil semua naskah mereka, lalu ambil review untuk setiap naskah
   /// 
@@ -111,8 +108,6 @@ class ReviewService {
   /// jadi kita perlu kombinasi dari:
   /// 1. GET /api/naskah/penulis/saya (ambil semua naskah penulis)
   /// 2. GET /api/review/naskah/:idNaskah (untuk setiap naskah)
-  /// 
-  /// Untuk efisiensi, kita bisa filter naskah yang statusnya dalam_review atau perlu_revisi
   static Future<ReviewListResponse> getAllReviewsForMyManuscripts({
     int halaman = 1,
     int limit = 20,

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "662457676787",
+    "project_id": "publishify",
+    "storage_bucket": "publishify.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662457676787:android:b562a4b2f1bc174e939886",
+        "android_client_info": {
+          "package_name": "com.example.publishify"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662457676787-26dde999shala85gn9rkc37034k59vtv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmeysxO5mazXBybA0OPPWj4KMKMORVzEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662457676787-26dde999shala85gn9rkc37034k59vtv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

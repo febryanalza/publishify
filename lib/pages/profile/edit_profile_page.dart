@@ -31,7 +31,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   DateTime? _selectedDate;
   
   // Map to store backend validation errors
-  Map<String, String> _backendErrors = {};
+  final Map<String, String> _backendErrors = {};
 
   @override
   void initState() {
@@ -98,7 +98,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _kotaController.text = profil.kota ?? '';
             _provinsiController.text = profil.provinsi ?? '';
             _kodePosController.text = profil.kodePos ?? '';
-            _jenisKelamin = profil.jenisKelamin;
+            
+            // Fixed: Validate jenisKelamin value before assigning
+            // Only accept 'L', 'P', or null (not empty string or other values)
+            if (profil.jenisKelamin == 'L' || profil.jenisKelamin == 'P') {
+              _jenisKelamin = profil.jenisKelamin;
+            } else {
+              _jenisKelamin = null; // Set to null if invalid value
+            }
 
             if (profil.tanggalLahir != null) {
               try {
@@ -744,7 +751,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _jenisKelamin,
+          value: _jenisKelamin, // Will be null, 'L', or 'P'
           decoration: InputDecoration(
             hintText: 'Pilih jenis kelamin',
             hintStyle: AppTheme.bodyMedium.copyWith(
@@ -765,6 +772,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppTheme.errorRed),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppTheme.errorRed, width: 2),
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 16,
@@ -778,6 +793,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             setState(() {
               _jenisKelamin = value;
             });
+          },
+          validator: (value) {
+            // Optional field - no validation needed
+            // Backend accepts: 'L', 'P', or null
+            return null;
           },
         ),
       ],
