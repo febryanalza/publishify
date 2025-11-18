@@ -4,11 +4,13 @@ import 'package:publishify/pages/auth/login_page.dart';
 import 'package:publishify/pages/auth/register_page.dart';
 import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/pages/main_layout.dart';
-import 'package:publishify/pages/upload/upload_book_page.dart';
-import 'package:publishify/pages/review/review_page.dart';
-import 'package:publishify/pages/print/print_page.dart';
-import 'package:publishify/pages/percetakan/pilih_percetakan_page.dart';
-import 'package:publishify/pages/naskah/naskah_list_page.dart';
+import 'package:publishify/pages/writer/upload/upload_book_page.dart';
+import 'package:publishify/pages/writer/review/review_page.dart';
+import 'package:publishify/pages/writer/print/print_page.dart';
+import 'package:publishify/pages/writer/percetakan/pilih_percetakan_page.dart';
+import 'package:publishify/pages/writer/naskah/naskah_list_page.dart';
+import 'package:publishify/pages/writer/naskah/detail_naskah_page.dart';
+import 'package:publishify/pages/editor/home/editor_dashboard_page.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -24,6 +26,13 @@ class AppRoutes {
   static const String print = '/print';
   static const String pilihPercetakan = '/pilih-percetakan';
   static const String naskahList = '/naskah-list';
+  static const String detailNaskah = '/detail-naskah';
+  
+  // Dashboard routes untuk setiap role
+  static const String dashboardPenulis = '/dashboard/penulis';
+  static const String dashboardEditor = '/dashboard/editor';
+  static const String dashboardPercetakan = '/dashboard/percetakan';
+  static const String dashboardAdmin = '/dashboard/admin';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -37,7 +46,23 @@ class AppRoutes {
       print: (context) => const PrintPage(),
       pilihPercetakan: (context) => const PilihPercetakanPage(),
       naskahList: (context) => const NaskahListPage(),
+      
+      // Dashboard routes - sesuai role masing-masing
+      dashboardPenulis: (context) => const MainLayout(initialIndex: 0),
+      dashboardEditor: (context) => const EditorDashboardPage(), 
+      dashboardPercetakan: (context) => const MainLayout(initialIndex: 0),
+      dashboardAdmin: (context) => const MainLayout(initialIndex: 0),
     };
+  }
+
+  // Navigate to detail naskah with parameter
+  static void navigateToDetailNaskah(BuildContext context, String naskahId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailNaskahPage(naskahId: naskahId),
+      ),
+    );
   }
 }
 

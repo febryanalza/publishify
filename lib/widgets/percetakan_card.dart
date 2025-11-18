@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/percetakan.dart';
+import 'package:publishify/models/writer/percetakan.dart';
 
 class PercetakanCard extends StatelessWidget {
   final Percetakan percetakan;

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/models/auth_models.dart';
-import 'package:publishify/services/auth_service.dart';
-import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
+import 'package:publishify/models/writer/auth_models.dart';
+import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/utils/routes.dart';
+import 'package:logger/logger.dart';
 
 /// Controller untuk mengelola navigasi berdasarkan peran pengguna
 /// Mengarahkan user ke dashboard yang sesuai dengan role mereka
 class RoleNavigationController {
+  static final logger = Logger();
+  
   /// Dapatkan route berdasarkan peran pengguna
   /// 
   /// Returns:
@@ -17,27 +20,14 @@ class RoleNavigationController {
   static String getRoleBasedRoute(List<String> userRoles) {
     // Prioritas role: admin > editor > percetakan > penulis
     if (userRoles.contains('admin')) {
-      return '/dashboard/admin';
+      return AppRoutes.dashboardAdmin;
     } else if (userRoles.contains('editor')) {
-      return '/dashboard/editor';
+      return AppRoutes.dashboardEditor;
     } else if (userRoles.contains('percetakan')) {
-      return '/dashboard/percetakan';
+      return AppRoutes.dashboardPercetakan;
     } else {
       // Default ke penulis jika role tidak dikenali atau penulis
-      return '/dashboard/penulis';
-    }
-  }
-
-  /// Dapatkan widget dashboard berdasarkan peran pengguna
-  static Widget getRoleBasedDashboard(List<String> userRoles) {
-    if (userRoles.contains('admin')) {
-      return AdminDashboardPage();
-    } else if (userRoles.contains('editor')) {
-      return EditorDashboardPage();
-    } else if (userRoles.contains('percetakan')) {
-      return PercetakanDashboardPage();
-    } else {
-      return PenulisDashboardPage();
+      return AppRoutes.dashboardPenulis;
     }
   }
 
@@ -80,12 +70,12 @@ class RoleNavigationController {
         (route) => false, // Remove all previous routes
       );
       
-      printToConsole('🎯 Navigating to: $targetRoute for roles: $userRoles');
+      logger.i('🎯 Navigating to: $targetRoute for roles: $userRoles');
     } catch (e) {
-      printToConsole('❌ Error in role navigation: $e');
+      logger.e('❌ Error in role navigation: $e');
       // Fallback ke dashboard penulis jika error
       Navigator.of(context).pushNamedAndRemoveUntil(
-        '/dashboard/penulis',
+        AppRoutes.dashboardPenulis,
         (route) => false,
       );
     }
@@ -112,12 +102,12 @@ class RoleNavigationController {
         (route) => false,
       );
       
-      printToConsole('🎯 Navigating after register to: $targetRoute for roles: $userRoles');
+      logger.i('🎯 Navigating after register to: $targetRoute for roles: $userRoles');
     } catch (e) {
-      printToConsole('❌ Error in role navigation after register: $e');
+      logger.e('❌ Error in role navigation after register: $e');
       // Fallback ke dashboard penulis jika error
       Navigator.of(context).pushNamedAndRemoveUntil(
-        '/dashboard/penulis',
+        AppRoutes.dashboardPenulis,
         (route) => false,
       );
     }
@@ -186,210 +176,5 @@ class RoleNavigationController {
       default:
         return Colors.orange;
     }
-  }
-}
-
-// ====================================
-// PLACEHOLDER DASHBOARD WIDGETS
-// Anda perlu membuat file-file ini
-// ====================================
-
-/// Dashboard untuk Admin
-class AdminDashboardPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard Admin'),
-        backgroundColor: RoleNavigationController.getRoleColor('admin'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              RoleNavigationController.getRoleIcon('admin'),
-              size: 100,
-              color: RoleNavigationController.getRoleColor('admin'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Dashboard Administrator',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text('Kelola pengguna, naskah, review, dan sistem'),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman admin yang sesuai
-                Navigator.pushNamed(context, '/admin/users');
-              },
-              child: Text('Kelola Pengguna'),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman admin review
-                Navigator.pushNamed(context, '/admin/reviews');
-              },
-              child: Text('Kelola Review'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Dashboard untuk Editor
-class EditorDashboardPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard Editor'),
-        backgroundColor: RoleNavigationController.getRoleColor('editor'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              RoleNavigationController.getRoleIcon('editor'),
-              size: 100,
-              color: RoleNavigationController.getRoleColor('editor'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Dashboard Editor',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text('Review dan edit naskah dari penulis'),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman review yang ditugaskan
-                Navigator.pushNamed(context, '/editor/reviews');
-              },
-              child: Text('Review Naskah'),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman feedback
-                Navigator.pushNamed(context, '/editor/feedback');
-              },
-              child: Text('Berikan Feedback'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Dashboard untuk Percetakan
-class PercetakanDashboardPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard Percetakan'),
-        backgroundColor: RoleNavigationController.getRoleColor('percetakan'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              RoleNavigationController.getRoleIcon('percetakan'),
-              size: 100,
-              color: RoleNavigationController.getRoleColor('percetakan'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Dashboard Percetakan',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text('Kelola pesanan cetak dan pengiriman'),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman pesanan
-                Navigator.pushNamed(context, '/percetakan/orders');
-              },
-              child: Text('Pesanan Cetak'),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman produksi
-                Navigator.pushNamed(context, '/percetakan/production');
-              },
-              child: Text('Status Produksi'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Dashboard untuk Penulis
-class PenulisDashboardPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard Penulis'),
-        backgroundColor: RoleNavigationController.getRoleColor('penulis'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              RoleNavigationController.getRoleIcon('penulis'),
-              size: 100,
-              color: RoleNavigationController.getRoleColor('penulis'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Dashboard Penulis',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text('Tulis, kelola, dan terbitkan naskah Anda'),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman naskah
-                Navigator.pushNamed(context, '/penulis/manuscripts');
-              },
-              child: Text('Naskah Saya'),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman upload
-                Navigator.pushNamed(context, '/upload');
-              },
-              child: Text('Upload Naskah'),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman pesanan cetak
-                Navigator.pushNamed(context, '/penulis/orders');
-              },
-              child: Text('Pesanan Cetak'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

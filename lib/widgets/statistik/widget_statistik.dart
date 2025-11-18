@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/services/statistik_service.dart';
+import 'package:publishify/services/writer/statistik_service.dart';
 
 class KartuStatistikUtama extends StatelessWidget {
   final StatistikData data;

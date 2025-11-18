@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/book.dart';
+import 'package:publishify/models/writer/book.dart';
 import 'package:publishify/widgets/network_image_widget.dart';
 
 class BookCard extends StatelessWidget {

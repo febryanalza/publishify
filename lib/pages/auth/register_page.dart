@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/success_page.dart';
-import 'package:publishify/services/auth_service.dart';
-import 'package:publishify/models/auth_models.dart';
+import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/models/writer/auth_models.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

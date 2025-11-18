@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/statistics.dart';
+import 'package:publishify/models/writer/statistics.dart';
 
 class RatingBar extends StatelessWidget {
   final Rating rating;

@@ -31,6 +31,32 @@
 
   <title>publishify</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Web debugging optimization -->
+  <script>
+    // Suppress known Flutter web debug service issues
+    if (window.console) {
+      const originalError = console.error;
+      console.error = function(...args) {
+        // Filter out known DebugService null errors that don't affect functionality
+        const message = args.join(' ');
+        if (message.includes('DebugService') && message.includes('Cannot send Null')) {
+          // Suppress this specific error
+          return;
+        }
+        originalError.apply(console, args);
+      };
+    }
+    
+    // Handle unhandled promise rejections related to debug service
+    window.addEventListener('unhandledrejection', function(event) {
+      if (event.reason && typeof event.reason === 'string' && 
+          event.reason.includes('DebugService')) {
+        // Prevent default handling for debug service errors
+        event.preventDefault();
+      }
+    });
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

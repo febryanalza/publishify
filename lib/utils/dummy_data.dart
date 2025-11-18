@@ -1,8 +1,8 @@
-import 'package:publishify/models/book.dart';
-import 'package:publishify/models/statistics.dart';
-import 'package:publishify/models/notification_model.dart';
-import 'package:publishify/models/user_profile.dart';
-import 'package:publishify/models/revision.dart';
+import 'package:publishify/models/writer/book.dart';
+import 'package:publishify/models/writer/statistics.dart';
+import 'package:publishify/models/writer/notification_model.dart';
+import 'package:publishify/models/writer/user_profile.dart';
+import 'package:publishify/models/writer/revision.dart';
 
 /// Dummy Data Manager
 /// 

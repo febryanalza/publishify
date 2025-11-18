@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/naskah_models.dart';
-import 'package:publishify/services/naskah_service.dart';
+import 'package:publishify/models/writer/naskah_models.dart';
+import 'package:publishify/services/writer/naskah_service.dart';
+import 'package:publishify/utils/routes.dart';
 
 class NaskahListPage extends StatefulWidget {
   const NaskahListPage({super.key});
@@ -138,38 +139,57 @@ class _NaskahListPageState extends State<NaskahListPage> {
   }
 
   Widget _buildSortOption(String label, String value) {
-    return RadioListTile<String>(
+    return ListTile(
+      leading: Radio<String>(
+        value: value,
+        groupValue: _selectedSort,
+        onChanged: (String? newValue) {
+          if (newValue != null) {
+            setState(() {
+              _selectedSort = newValue;
+            });
+            Navigator.pop(context);
+            _loadNaskah();
+          }
+        },
+        fillColor: WidgetStateProperty.all(AppTheme.primaryGreen),
+      ),
       title: Text(label),
-      value: value,
-      groupValue: _selectedSort,
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          setState(() {
-            _selectedSort = newValue;
-          });
-          Navigator.pop(context);
-          _loadNaskah();
-        }
+      onTap: () {
+        setState(() {
+          _selectedSort = value;
+        });
+        Navigator.pop(context);
+        _loadNaskah();
       },
-      activeColor: AppTheme.primaryGreen,
     );
   }
 
   Widget _buildDirectionOption(String label, String value) {
-    return RadioListTile<String>(
+    return ListTile(
+      leading: Radio<String>(
+        value: value,
+        groupValue: _selectedDirection,
+        onChanged: (String? newValue) {
+          if (newValue != null) {
+            setState(() {
+              _selectedDirection = newValue;
+            });
+            Navigator.pop(context);
+            _loadNaskah();
+          }
+        },
+        fillColor: WidgetStateProperty.all(AppTheme.primaryGreen),
+      ),
       title: Text(label),
-      value: value,
-      groupValue: _selectedDirection,
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          setState(() {
-            _selectedDirection = newValue;
-          });
-          Navigator.pop(context);
-          _loadNaskah();
-        }
+      onTap: () {
+        setState(() {
+          _selectedDirection = value;
+        });
+        Navigator.pop(context);
+        _loadNaskah();
       },
-      activeColor: AppTheme.primaryGreen,
+      
     );
   }
 
@@ -407,13 +427,8 @@ class _NaskahListPageState extends State<NaskahListPage> {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to detail
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Open: ${naskah.judul}'),
-              duration: const Duration(seconds: 1),
-            ),
-          );
+          // Navigate to detail naskah page
+          AppRoutes.navigateToDetailNaskah(context, naskah.id);
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/pages/home/home_page.dart';
-import 'package:publishify/pages/statistics/statistics_page.dart';
-import 'package:publishify/pages/notifications/notifications_page.dart';
-import 'package:publishify/pages/profile/profile_page.dart';
+import 'package:publishify/pages/writer/home/home_page.dart';
+import 'package:publishify/pages/writer/statistics/statistics_page.dart';
+import 'package:publishify/pages/writer/notifications/notifications_page.dart';
+import 'package:publishify/pages/writer/profile/profile_page.dart';
 import 'package:publishify/widgets/navigation/bottom_nav_bar.dart';
 
 /// Main Layout with persistent bottom navigation bar

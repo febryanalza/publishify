@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/controllers/role_navigation_controller.dart';
+import 'package:publishify/pages/editor/editor_main_page.dart';
+import 'package:publishify/pages/editor/review/review_collection_page.dart';
+import 'package:publishify/pages/editor/review/review_naskah_page.dart';
+import 'package:publishify/pages/editor/review/detail_review_naskah_page.dart';
+import 'package:publishify/pages/editor/statistics/editor_statistics_page.dart';
+import 'package:publishify/pages/editor/notifications/editor_notifications_page.dart';
+import 'package:publishify/pages/editor/profile/editor_profile_page.dart';
+import 'package:publishify/pages/editor/naskah/naskah_masuk_page.dart';
+import 'package:publishify/pages/editor/feedback/editor_feedback_page.dart';
+
+// Common pages imports
+import 'package:publishify/pages/auth/splash_screen.dart';
+import 'package:publishify/pages/writer/upload/upload_book_page.dart';
 
 /// Route Configuration untuk Role-Based Navigation
 /// Mengatur routing berdasarkan role pengguna
@@ -12,6 +24,11 @@ class AppRoutes {
       // AUTH ROUTES
       // ====================================
       case '/':
+        return MaterialPageRoute(
+          builder: (_) => const SplashScreen(),
+          settings: settings,
+        );
+
       case '/home':
         return MaterialPageRoute(
           builder: (_) => HomePage(),
@@ -35,25 +52,25 @@ class AppRoutes {
       // ====================================
       case '/dashboard/penulis':
         return MaterialPageRoute(
-          builder: (_) => PenulisDashboardPage(),
+          builder: (_) => HomePage(), // HomePage berfungsi sebagai writer dashboard
           settings: settings,
         );
 
       case '/dashboard/editor':
         return MaterialPageRoute(
-          builder: (_) => EditorDashboardPage(),
+          builder: (_) => const EditorMainPage(),
           settings: settings,
         );
 
       case '/dashboard/percetakan':
         return MaterialPageRoute(
-          builder: (_) => PercetakanDashboardPage(),
+          builder: (_) => _buildPlaceholderPage('Percetakan Dashboard', 'Dashboard untuk role percetakan belum tersedia'),
           settings: settings,
         );
 
       case '/dashboard/admin':
         return MaterialPageRoute(
-          builder: (_) => AdminDashboardPage(),
+          builder: (_) => _buildPlaceholderPage('Admin Dashboard', 'Dashboard untuk role admin belum tersedia'),
           settings: settings,
         );
 
@@ -62,19 +79,19 @@ class AppRoutes {
       // ====================================
       case '/penulis/manuscripts':
         return MaterialPageRoute(
-          builder: (_) => PenulisManuscriptListPage(),
+          builder: (_) => _buildPlaceholderPage('Daftar Naskah', 'Halaman daftar naskah penulis'),
           settings: settings,
         );
 
       case '/penulis/orders':
         return MaterialPageRoute(
-          builder: (_) => PenulisOrderListPage(),
+          builder: (_) => _buildPlaceholderPage('Pesanan Penulis', 'Halaman pesanan untuk penulis'),
           settings: settings,
         );
 
       case '/upload':
         return MaterialPageRoute(
-          builder: (_) => UploadNaskahPage(),
+          builder: (_) => UploadBookPage(),
           settings: settings,
         );
 
@@ -83,7 +100,46 @@ class AppRoutes {
       // ====================================
       case '/editor/reviews':
         return MaterialPageRoute(
-          builder: (_) => EditorReviewListPage(),
+          builder: (_) => const ReviewCollectionPage(),
+          settings: settings,
+        );
+
+      case '/editor/review-naskah':
+        return MaterialPageRoute(
+          builder: (_) => const ReviewNaskahPage(),
+          settings: settings,
+        );
+
+      case '/editor/detail-review-naskah':
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => DetailReviewNaskahPage(
+            naskahId: args?['naskahId'] ?? '',
+          ),
+          settings: settings,
+        );
+
+      case '/editor/statistics':
+        return MaterialPageRoute(
+          builder: (_) => const EditorStatisticsPage(),
+          settings: settings,
+        );
+
+      case '/editor/notifications':
+        return MaterialPageRoute(
+          builder: (_) => const EditorNotificationsPage(),
+          settings: settings,
+        );
+
+      case '/editor/profile':
+        return MaterialPageRoute(
+          builder: (_) => const EditorProfilePage(),
+          settings: settings,
+        );
+
+      case '/editor/naskah-masuk':
+        return MaterialPageRoute(
+          builder: (_) => const NaskahMasukPage(),
           settings: settings,
         );
 
@@ -128,19 +184,19 @@ class AppRoutes {
       // ====================================
       case '/profile':
         return MaterialPageRoute(
-          builder: (_) => ProfilePage(),
+          builder: (_) => _buildPlaceholderPage('Profil', 'Halaman profil pengguna'),
           settings: settings,
         );
 
       case '/notifications':
         return MaterialPageRoute(
-          builder: (_) => NotificationsPage(),
+          builder: (_) => _buildPlaceholderPage('Notifikasi', 'Halaman notifikasi pengguna'),
           settings: settings,
         );
 
       case '/settings':
         return MaterialPageRoute(
-          builder: (_) => SettingsPage(),
+          builder: (_) => _buildPlaceholderPage('Pengaturan', 'Halaman pengaturan aplikasi'),
           settings: settings,
         );
 
@@ -149,16 +205,117 @@ class AppRoutes {
       // ====================================
       default:
         return MaterialPageRoute(
-          builder: (_) => NotFoundPage(routeName: settings.name),
+          builder: (_) => _build404Page(settings.name),
           settings: settings,
         );
     }
   }
 
+  /// Helper method untuk membuat placeholder page
+  static Widget _buildPlaceholderPage(String title, String message) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: const Color(0xFF2E7D32),
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.construction,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+              ),
+              child: const Text(
+                'Segera Hadir',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Helper method untuk 404 page
+  static Widget _build404Page(String? routeName) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Halaman Tidak Ditemukan'),
+        backgroundColor: const Color(0xFF2E7D32),
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '404 - Halaman Tidak Ditemukan',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Route "$routeName" tidak tersedia',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32),
+              ),
+              child: const Text(
+                'Kembali ke Beranda',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Get initial route berdasarkan auth status dan role
   static Future<String> getInitialRoute() async {
     // TODO: Implement auth check logic
-    // Untuk sekarang return ke home page
+    // Untuk sekarang return ke splash screen
     return '/';
   }
 }
@@ -167,6 +324,32 @@ class AppRoutes {
 // PLACEHOLDER PAGES
 // Anda perlu membuat/import file-file page yang sesuai
 // ====================================
+
+/// Dashboard untuk Percetakan
+class PercetakanDashboardPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Dashboard Percetakan')),
+      body: Center(
+        child: Text('Percetakan Dashboard - TODO: Implement'),
+      ),
+    );
+  }
+}
+
+/// Dashboard untuk Admin
+class AdminDashboardPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Dashboard Admin')),
+      body: Center(
+        child: Text('Admin Dashboard - TODO: Implement'),
+      ),
+    );
+  }
+}
 
 /// Home Page (Landing Page)
 class HomePage extends StatelessWidget {

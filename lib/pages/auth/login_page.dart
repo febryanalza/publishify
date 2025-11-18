@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/register_page.dart';
 import 'package:publishify/pages/auth/success_page.dart';
-import 'package:publishify/services/auth_service.dart';
-import 'package:publishify/models/auth_models.dart';
+import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/models/writer/auth_models.dart';
 import 'package:publishify/controllers/role_navigation_controller.dart';
 
 class LoginPage extends StatefulWidget {
@@ -28,6 +28,20 @@ class _LoginPageState extends State<LoginPage> {
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
+      // Validasi tambahan untuk mencegah pengiriman nilai null atau kosong
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      
+      if (email.isEmpty || password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email dan password tidak boleh kosong'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      
       // Show loading
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -49,11 +63,11 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // Call real API
+      // Call real API dengan nilai yang sudah divalidasi
       final response = await AuthService.login(
         LoginRequest(
-          email: _emailController.text,
-          kataSandi: _passwordController.text,
+          email: email,
+          kataSandi: password,
         ),
       );
 

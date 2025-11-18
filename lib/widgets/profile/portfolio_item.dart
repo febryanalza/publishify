@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/user_profile.dart';
+import 'package:publishify/models/writer/user_profile.dart';
 import 'package:publishify/widgets/network_image_widget.dart';
 
 /// Reusable component untuk menampilkan portfolio item dengan loading placeholder

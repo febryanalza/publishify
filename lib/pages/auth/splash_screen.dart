@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/login_page.dart';
 import 'package:publishify/pages/main_layout.dart';
-import 'package:publishify/services/auth_service.dart';
+import 'package:publishify/services/writer/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Container(
               width: 200,
               height: 200,
-              
+
               child: Image.asset(
                 'assets/images/logo.png',
                 height: 160,

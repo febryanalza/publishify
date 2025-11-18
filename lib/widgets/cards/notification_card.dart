@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/notification_model.dart';
+import 'package:publishify/models/writer/notification_model.dart';
 
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;

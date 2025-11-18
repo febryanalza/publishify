@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/revision.dart';
+import 'package:publishify/models/writer/revision.dart';
 
 /// Reusable component untuk menampilkan revision item
 class RevisionCard extends StatelessWidget {
