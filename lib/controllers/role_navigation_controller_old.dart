@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/models/writer/auth_models.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/models/general/auth_models.dart';
+import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/utils/routes.dart';
 import 'package:logger/logger.dart';
 
@@ -62,6 +62,7 @@ class RoleNavigationController {
       
       // Dapatkan route berdasarkan role
       String targetRoute = getRoleBasedRoute(userRoles);
+      if(!context.mounted) return;
       
       // Navigate to appropriate dashboard
       Navigator.of(context).pushNamedAndRemoveUntil(
@@ -94,6 +95,7 @@ class RoleNavigationController {
       
       // Dapatkan route berdasarkan role
       String targetRoute = getRoleBasedRoute(userRoles);
+      if(!context.mounted) return;
       
       // Navigate to appropriate dashboard
       Navigator.of(context).pushNamedAndRemoveUntil(

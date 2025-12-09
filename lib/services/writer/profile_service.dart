@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logger/logger.dart';
 import 'package:publishify/models/writer/update_profile_models.dart';
 import 'package:publishify/models/writer/profile_api_models.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/services/general/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Profile Service
@@ -121,9 +121,15 @@ class ProfileService {
       
       if (data.profilPengguna != null) {
         final profil = data.profilPengguna!;
-        await prefs.setString('nama_depan', profil.namaDepan);
-        await prefs.setString('nama_belakang', profil.namaBelakang);
-        await prefs.setString('nama_tampilan', profil.namaTampilan);
+        if (profil.namaDepan != null) {
+          await prefs.setString('nama_depan', profil.namaDepan!);
+        }
+        if (profil.namaBelakang != null) {
+          await prefs.setString('nama_belakang', profil.namaBelakang!);
+        }
+        if (profil.namaTampilan != null) {
+          await prefs.setString('nama_tampilan', profil.namaTampilan!);
+        }
         
         if (profil.bio != null) {
           await prefs.setString('bio', profil.bio!);
@@ -228,9 +234,15 @@ class ProfileService {
     if (data.profilPengguna != null) {
       final profil = data.profilPengguna!;
       
-      await prefs.setString('nama_depan', profil.namaDepan);
-      await prefs.setString('nama_belakang', profil.namaBelakang);
-      await prefs.setString('nama_tampilan', profil.namaTampilan);
+      if (profil.namaDepan != null) {
+        await prefs.setString('nama_depan', profil.namaDepan!);
+      }
+      if (profil.namaBelakang != null) {
+        await prefs.setString('nama_belakang', profil.namaBelakang!);
+      }
+      if (profil.namaTampilan != null) {
+        await prefs.setString('nama_tampilan', profil.namaTampilan!);
+      }
       
       if (profil.bio != null) {
         await prefs.setString('bio', profil.bio!);

@@ -139,38 +139,76 @@ class _NaskahListPageState extends State<NaskahListPage> {
   }
 
   Widget _buildSortOption(String label, String value) {
-    return RadioListTile<String>(
+    final isSelected = _selectedSort == value;
+    return ListTile(
+      leading: Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryGreen : AppTheme.greyMedium,
+            width: 2,
+          ),
+        ),
+        child: isSelected
+            ? Center(
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+              )
+            : null,
+      ),
       title: Text(label),
-      value: value,
-      groupValue: _selectedSort,
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          setState(() {
-            _selectedSort = newValue;
-          });
-          Navigator.pop(context);
-          _loadNaskah();
-        }
+      onTap: () {
+        setState(() {
+          _selectedSort = value;
+        });
+        Navigator.pop(context);
+        _loadNaskah();
       },
-      activeColor: AppTheme.primaryGreen,
     );
   }
 
   Widget _buildDirectionOption(String label, String value) {
-    return RadioListTile<String>(
+    final isSelected = _selectedDirection == value;
+    return ListTile(
+      leading: Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryGreen : AppTheme.greyMedium,
+            width: 2,
+          ),
+        ),
+        child: isSelected
+            ? Center(
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+              )
+            : null,
+      ),
       title: Text(label),
-      value: value,
-      groupValue: _selectedDirection,
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          setState(() {
-            _selectedDirection = newValue;
-          });
-          Navigator.pop(context);
-          _loadNaskah();
-        }
+      onTap: () {
+        setState(() {
+          _selectedDirection = value;
+        });
+        Navigator.pop(context);
+        _loadNaskah();
       },
-      activeColor: AppTheme.primaryGreen,
     );
   }
 

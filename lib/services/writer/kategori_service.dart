@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/models/writer/kategori_models.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/services/general/auth_service.dart';
 
 /// Kategori Service
 /// Handles all kategori related API calls

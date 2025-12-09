@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/utils/dummy_data.dart';
+import 'package:publishify/models/writer/user_profile.dart';
+import 'package:publishify/widgets/profile/profile_widgets.dart';
+import 'package:publishify/services/general/auth_service.dart';
+import 'package:publishify/services/editor/profile_service.dart';
+import 'package:publishify/pages/editor/profile/edit_profile_page.dart';
+import 'package:publishify/widgets/network_image_widget.dart';
 
 /// Halaman Profile Editor
 class EditorProfilePage extends StatefulWidget {
@@ -11,564 +17,594 @@ class EditorProfilePage extends StatefulWidget {
 }
 
 class _EditorProfilePageState extends State<EditorProfilePage> {
-  Map<String, dynamic> _profileData = {};
-  bool _isLoading = true;
+  late UserProfile _profile;
+  String _userName = '';
+  String _userBio = 'Belum dilengkapi';
+  String _userRole = '';
+  String _userAvatar = '';
+  bool _isLoadingProfile = true;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadData();
   }
 
-  Future<void> _loadProfile() async {
+  void _loadData() async {
+    // Load data from DummyData for stats only
+    _profile = DummyData.getUserProfile();
+    
+    // Load user data from API (with cache)
+    await _loadUserDataFromAPI();
+  }
+
+  Future<void> _loadUserDataFromAPI() async {
     setState(() {
-      _isLoading = true;
+      _isLoadingProfile = true;
     });
 
-    // Simulasi loading profile data
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      // Get profile from API (will use cache if not expired)
+      final response = await EditorProfileService.getProfile();
+      
+      if (response.sukses && response.data != null && mounted) {
+        final profileData = response.data!;
+        
+        setState(() {
+          // Get nama tampilan from profile
+          if (profileData.profilPengguna != null) {
+            _userName = profileData.profilPengguna!.namaTampilan ?? '';
+            _userBio = profileData.profilPengguna!.bio ?? 'Belum dilengkapi';
+            _userAvatar = profileData.profilPengguna!.urlAvatar ?? '';
+          } else {
+            _userName = 'User';
+            _userBio = 'Belum dilengkapi';
+            _userAvatar = '';
+          }
+          
+          // Get role/peran (join multiple active roles with comma)
+          if (profileData.peranPengguna.isNotEmpty) {
+            final activeRoles = profileData.peranPengguna
+                .where((role) => role.aktif)
+                .map((role) {
+                  // Capitalize first letter of each role
+                  final jenisPeran = role.jenisPeran;
+                  return jenisPeran[0].toUpperCase() + jenisPeran.substring(1);
+                })
+                .toList();
+            
+            _userRole = activeRoles.isNotEmpty ? activeRoles.join(', ') : 'User';
+          } else {
+            _userRole = 'User';
+          }
+          
+          _isLoadingProfile = false;
+        });
+      } else {
+        // If API fails, try to load from old cache
+        await _loadFromOldCache();
+      }
+    } catch (e) {
+      // If error, try to load from old cache
+      await _loadFromOldCache();
+    }
+  }
 
-    // Dummy profile data
-    setState(() {
-      _profileData = {
-        'nama': 'Dr. Sarah Wijaya',
-        'email': 'sarah.wijaya@publishify.com',
-        'telepon': '+62 812-3456-7890',
-        'spesialisasi': ['Fiksi Sastra', 'Novel Romantis', 'Biografi'],
-        'pengalaman': '8 tahun',
-        'totalReview': 156,
-        'rating': 4.8,
-        'bergabung': DateTime(2020, 3, 15),
-        'avatar': 'https://via.placeholder.com/150',
-        'bio': 'Editor berpengalaman dengan spesialisasi dalam fiksi sastra dan novel romantis. Memiliki gelar doktor dalam Sastra Indonesia dan telah mereview lebih dari 150 naskah.',
-        'sertifikasi': [
-          'Certified Professional Editor (CPE)',
-          'Literary Review Specialist',
-          'Creative Writing Mentor',
-        ],
-        'bahasa': ['Indonesia', 'English', 'Mandarin'],
-        'status': 'Aktif',
-      };
-      _isLoading = false;
-    });
+  /// Fallback: Load from old cache format (for backward compatibility)
+  Future<void> _loadFromOldCache() async {
+    try {
+      final loginData = await AuthService.getLoginData();
+      
+      if (loginData != null && mounted) {
+        setState(() {
+          if (loginData.pengguna.profilPengguna != null) {
+            _userName = loginData.pengguna.profilPengguna!.namaTampilan;
+            _userBio = loginData.pengguna.profilPengguna!.bio ?? 'Belum dilengkapi';
+          } else {
+            _userName = 'User';
+            _userBio = 'Belum dilengkapi';
+          }
+          
+          if (loginData.pengguna.peran.isNotEmpty) {
+            _userRole = loginData.pengguna.peran.map((role) {
+              return role[0].toUpperCase() + role.substring(1);
+            }).join(', ');
+          } else {
+            _userRole = 'User';
+          }
+          
+          _isLoadingProfile = false;
+        });
+      } else {
+        setState(() {
+          _userName = 'User';
+          _userBio = 'Belum dilengkapi';
+          _userRole = 'User';
+          _isLoadingProfile = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _userName = 'User';
+          _userBio = 'Belum dilengkapi';
+          _userRole = 'User';
+          _isLoadingProfile = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshProfile() async {
+    // Clear cache and reload from API
+    await EditorProfileService.clearProfileCache();
+    await _loadUserDataFromAPI();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          'Profile Editor',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+      backgroundColor: AppTheme.backgroundWhite,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top Header
+            _buildHeader(),
+            
+            // Main Content - Scrollable with RefreshIndicator
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _refreshProfile,
+                color: AppTheme.primaryGreen,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      
+                      // Profile Info Section
+                      _buildProfileInfo(),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Bio Section
+                      _buildBioSection(),
+                      
+                      const SizedBox(height: 80), // Space for bottom nav
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        backgroundColor: AppTheme.primaryGreen,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: _editProfile,
-            tooltip: 'Edit Profile',
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: AppTheme.primaryGreen,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Profil',
+            style: AppTheme.headingMedium.copyWith(
+              color: AppTheme.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onSelected: _onMenuSelected,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'settings',
-                child: ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text('Pengaturan'),
-                  contentPadding: EdgeInsets.zero,
+          IconButton(
+            icon: const Icon(
+              Icons.more_vert,
+              color: AppTheme.white,
+            ),
+            onPressed: () {
+              _showMoreMenu();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileInfo() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: _isLoadingProfile
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20.0),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryGreen,
+                  ),
                 ),
               ),
-              const PopupMenuItem(
-                value: 'help',
-                child: ListTile(
-                  leading: Icon(Icons.help),
-                  title: Text('Bantuan'),
-                  contentPadding: EdgeInsets.zero,
-                ),
+            )
+          : Column(
+        children: [
+          // Profile Picture
+          AvatarImage(
+            urlAvatar: _userAvatar.isNotEmpty ? _userAvatar : _profile.photoUrl,
+            size: 100,
+            fallbackText: _userName,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Name (from cache)
+          Text(
+            _userName.isEmpty ? _profile.name : _userName,
+            style: AppTheme.headingMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: AppTheme.black,
+            ),
+          ),
+          
+          const SizedBox(height: 4),
+          
+          // Role (from cache)
+          Text(
+            _userRole.isEmpty ? _profile.role : _userRole,
+            style: AppTheme.bodyMedium.copyWith(
+              color: AppTheme.greyMedium,
+              fontSize: 14,
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Stats Row (khusus untuk editor)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              StatItem(
+                count: _profile.totalBooks, // Total reviews
+                label: 'Review',
               ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: ListTile(
-                  leading: Icon(Icons.logout, color: Colors.red),
-                  title: Text('Keluar', style: TextStyle(color: Colors.red)),
-                  contentPadding: EdgeInsets.zero,
-                ),
+              Container(
+                width: 1,
+                height: 40,
+                color: AppTheme.greyLight,
+              ),
+              StatItem(
+                count: _profile.totalRating,
+                label: 'Rating',
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: AppTheme.greyLight,
+              ),
+              StatItem(
+                count: _profile.totalViewers, // Naskah processed
+                label: 'Naskah',
               ),
             ],
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildProfileContent(),
     );
   }
 
-  Widget _buildProfileContent() {
-    return RefreshIndicator(
-      onRefresh: _loadProfile,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 20),
-            _buildProfileSections(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader() {
+  Widget _buildBioSection() {
     return Container(
-      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.primaryGreen,
-            AppTheme.primaryGreen.withOpacity(0.8),
-          ],
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Biografi Singkat',
+            style: AppTheme.headingSmall.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: AppTheme.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: Text(
+              _userBio,
+              style: AppTheme.bodyMedium.copyWith(
+                color: _userBio == 'Belum dilengkapi' 
+                  ? AppTheme.greyMedium.withValues(alpha: 0.6)
+                  : AppTheme.greyMedium,
+                height: 1.6,
+                fontSize: 14,
+                fontStyle: _userBio == 'Belum dilengkapi' 
+                  ? FontStyle.italic 
+                  : FontStyle.normal,
+              ),
+              textAlign: TextAlign.justify,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMoreMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
         ),
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+      builder: (context) {
+        return SafeArea(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  image: const DecorationImage(
-                    image: NetworkImage('https://via.placeholder.com/150'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _profileData['nama'] ?? '',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _profileData['email'] ?? '',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-              ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Status: ${_profileData['status']}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  color: AppTheme.greyLight,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.edit, color: AppTheme.primaryGreen),
+                title: const Text('Edit Profil'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  // Navigate to edit profile page
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditorEditProfilePage(),
+                    ),
+                  );
+                  
+                  // If profile was updated, reload data from API
+                  if (result == true && mounted) {
+                    await EditorProfileService.clearProfileCache();
+                    await _loadUserDataFromAPI();
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings, color: AppTheme.primaryGreen),
+                title: const Text('Pengaturan'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Navigate to settings
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Fitur pengaturan akan segera hadir'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout, color: AppTheme.errorRed),
+                title: const Text(
+                  'Keluar',
+                  style: TextStyle(color: AppTheme.errorRed),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showLogoutConfirmation();
+                },
+              ),
+              const SizedBox(height: 20),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileSections() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          _buildStatsSection(),
-          const SizedBox(height: 20),
-          _buildInfoSection(),
-          const SizedBox(height: 20),
-          _buildSpesialisasiSection(),
-          const SizedBox(height: 20),
-          _buildSertifikasiSection(),
-          const SizedBox(height: 20),
-          _buildQuickActionsSection(),
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Statistik',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatItem(
-                    'Total Review',
-                    _profileData['totalReview'].toString(),
-                    Icons.assignment_outlined,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Rating',
-                    _profileData['rating'].toString(),
-                    Icons.star,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    'Pengalaman',
-                    _profileData['pengalaman'],
-                    Icons.work_outline,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: AppTheme.primaryGreen, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryGreen,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Informasi Personal',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoItem(Icons.phone, 'Telepon', _profileData['telepon']),
-            _buildInfoItem(Icons.calendar_today, 'Bergabung', 
-                '${_profileData['bergabung'].day}/${_profileData['bergabung'].month}/${_profileData['bergabung'].year}'),
-            _buildInfoItem(Icons.language, 'Bahasa', _profileData['bahasa'].join(', ')),
-            const SizedBox(height: 16),
-            const Text(
-              'Bio',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _profileData['bio'],
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                height: 1.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primaryGreen, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            '$label:',
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpesialisasiSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Spesialisasi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _profileData['spesialisasi']
-                  .map<Widget>((spesialisasi) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          spesialisasi,
-                          style: const TextStyle(
-                            color: AppTheme.primaryGreen,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSertifikasiSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Sertifikasi',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ..._profileData['sertifikasi']
-                .map<Widget>((sertifikasi) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.verified,
-                            color: AppTheme.primaryGreen,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              sertifikasi,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ))
-                .toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Aksi Cepat',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildActionButton(
-              'Edit Profile',
-              Icons.edit,
-              () => _editProfile(),
-            ),
-            _buildActionButton(
-              'Ganti Password',
-              Icons.lock,
-              () => _changePassword(),
-            ),
-            _buildActionButton(
-              'Pengaturan Notifikasi',
-              Icons.notifications,
-              () => _notificationSettings(),
-            ),
-            _buildActionButton(
-              'Bantuan & FAQ',
-              Icons.help,
-              () => _showHelp(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(String title, IconData icon, VoidCallback onTap) {
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.primaryGreen),
-      title: Text(title),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-    );
-  }
-
-  void _editProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur edit profile akan segera tersedia')),
-    );
-  }
-
-  void _changePassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur ganti password akan segera tersedia')),
-    );
-  }
-
-  void _notificationSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur pengaturan notifikasi akan segera tersedia')),
-    );
-  }
-
-  void _showHelp() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur bantuan akan segera tersedia')),
-    );
-  }
-
-  void _onMenuSelected(String value) {
-    switch (value) {
-      case 'settings':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fitur pengaturan akan segera tersedia')),
         );
-        break;
-      case 'help':
-        _showHelp();
-        break;
-      case 'logout':
-        _showLogoutConfirmation();
-        break;
-    }
+      },
+    );
   }
 
   void _showLogoutConfirmation() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi Keluar'),
-        content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.logout,
+                color: AppTheme.errorRed,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('Keluar'),
+          ],
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar dari aplikasi?',
+          style: TextStyle(fontSize: 14),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _logout();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: AppTheme.greyMedium,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            child: const Text('Keluar'),
+          ),
+          ElevatedButton(
+            onPressed: () => _handleLogout(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: AppTheme.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+            ),
+            child: const Text(
+              'Keluar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _logout() async {
-    // TODO: Implement logout logic
-    await AuthService.logout();
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/login',
-      (route) => false,
+  Future<void> _handleLogout() async {
+    // Close confirmation dialog
+    Navigator.pop(context);
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryGreen,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Logging out...',
+                  style: AppTheme.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Mohon tunggu sebentar',
+                  style: AppTheme.bodySmall.copyWith(
+                    color: AppTheme.greyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+    
+    try {
+      // Call logout API and clear all data
+      final success = await AuthService.logout();
+      
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      
+      // Navigate to splash screen and clear all routes
+      if (mounted) {
+        // Navigate to splash screen which will redirect to login
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/',
+          (route) => false,
+        );
+      }
+      
+      // Show success message
+      if (mounted && success) {
+        // Wait a bit then show success on splash
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Berhasil logout'),
+                backgroundColor: AppTheme.primaryGreen,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
+            backgroundColor: AppTheme.errorRed,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      
+      // Still navigate to splash even on error
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/',
+          (route) => false,
+        );
+      }
+    }
   }
 }

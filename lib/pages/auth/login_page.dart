@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/register_page.dart';
 import 'package:publishify/pages/auth/success_page.dart';
-import 'package:publishify/services/writer/auth_service.dart';
-import 'package:publishify/models/writer/auth_models.dart';
+import 'package:publishify/services/general/auth_service.dart';
+import 'package:publishify/models/general/auth_models.dart';
 import 'package:publishify/controllers/role_navigation_controller.dart';
 
 class LoginPage extends StatefulWidget {

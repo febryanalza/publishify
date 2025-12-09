@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+// Editor pages imports
 import 'package:publishify/pages/editor/editor_main_page.dart';
 import 'package:publishify/pages/editor/review/review_collection_page.dart';
 import 'package:publishify/pages/editor/review/review_naskah_page.dart';
@@ -8,10 +10,26 @@ import 'package:publishify/pages/editor/notifications/editor_notifications_page.
 import 'package:publishify/pages/editor/profile/editor_profile_page.dart';
 import 'package:publishify/pages/editor/naskah/naskah_masuk_page.dart';
 import 'package:publishify/pages/editor/feedback/editor_feedback_page.dart';
+// import 'package:publishify/pages/editor/editor_route_test_page.dart';
 
-// Common pages imports
+// Percetakan pages imports
+import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
+
+// Auth pages imports
 import 'package:publishify/pages/auth/splash_screen.dart';
+import 'package:publishify/pages/auth/login_page.dart';
+import 'package:publishify/pages/auth/register_page.dart';
+import 'package:publishify/pages/auth/success_page.dart';
+
+// Writer/Common pages imports
+import 'package:publishify/pages/main_layout.dart';
+import 'package:publishify/pages/writer/home/home_page.dart';
 import 'package:publishify/pages/writer/upload/upload_book_page.dart';
+import 'package:publishify/pages/writer/review/review_page.dart';
+import 'package:publishify/pages/writer/print/print_page.dart';
+import 'package:publishify/pages/writer/percetakan/pilih_percetakan_page.dart';
+import 'package:publishify/pages/writer/naskah/naskah_list_page.dart';
+import 'package:publishify/pages/writer/naskah/detail_naskah_page.dart';
 
 /// Route Configuration untuk Role-Based Navigation
 /// Mengatur routing berdasarkan role pengguna
@@ -31,7 +49,7 @@ class AppRoutes {
 
       case '/home':
         return MaterialPageRoute(
-          builder: (_) => HomePage(),
+          builder: (_) => const MainLayout(initialIndex: 0),
           settings: settings,
         );
 
@@ -52,7 +70,7 @@ class AppRoutes {
       // ====================================
       case '/dashboard/penulis':
         return MaterialPageRoute(
-          builder: (_) => HomePage(), // HomePage berfungsi sebagai writer dashboard
+          builder: (_) => const MainLayout(initialIndex: 0), // MainLayout dengan bottom nav untuk penulis
           settings: settings,
         );
 
@@ -64,7 +82,7 @@ class AppRoutes {
 
       case '/dashboard/percetakan':
         return MaterialPageRoute(
-          builder: (_) => _buildPlaceholderPage('Percetakan Dashboard', 'Dashboard untuk role percetakan belum tersedia'),
+          builder: (_) => const PercetakanMainPage(),
           settings: settings,
         );
 
@@ -149,6 +167,7 @@ class AppRoutes {
           settings: settings,
         );
 
+      
       // ====================================
       // PERCETAKAN SPECIFIC ROUTES
       // ====================================
@@ -197,6 +216,54 @@ class AppRoutes {
       case '/settings':
         return MaterialPageRoute(
           builder: (_) => _buildPlaceholderPage('Pengaturan', 'Halaman pengaturan aplikasi'),
+          settings: settings,
+        );
+
+      // ====================================
+      // WRITER/PENULIS SPECIFIC ROUTES
+      // ====================================
+      case '/success':
+        return MaterialPageRoute(
+          builder: (_) => const SuccessPage(),
+          settings: settings,
+        );
+
+      case '/upload-book':
+        return MaterialPageRoute(
+          builder: (_) => const UploadBookPage(),
+          settings: settings,
+        );
+
+      case '/review':
+        return MaterialPageRoute(
+          builder: (_) => const ReviewPage(),
+          settings: settings,
+        );
+
+      case '/print':
+        return MaterialPageRoute(
+          builder: (_) => const PrintPage(),
+          settings: settings,
+        );
+
+      case '/pilih-percetakan':
+        return MaterialPageRoute(
+          builder: (_) => const PilihPercetakanPage(),
+          settings: settings,
+        );
+
+      case '/naskah-list':
+        return MaterialPageRoute(
+          builder: (_) => const NaskahListPage(),
+          settings: settings,
+        );
+
+      case '/detail-naskah':
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => DetailNaskahPage(
+            naskahId: args?['naskahId'] ?? '',
+          ),
           settings: settings,
         );
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/models/writer/genre_models.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/services/general/auth_service.dart';
 
 /// Genre Service
 /// Handles all genre related API calls

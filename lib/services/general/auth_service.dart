@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:publishify/models/writer/auth_models.dart';
+import 'package:publishify/models/general/auth_models.dart';
 
 /// Authentication Service
 /// Handles all authentication related API calls

@@ -312,7 +312,7 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -351,7 +351,7 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -627,7 +627,7 @@ class _FeedbackFormSheetState extends State<FeedbackFormSheet> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _kategori,
+            initialValue: _kategori,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

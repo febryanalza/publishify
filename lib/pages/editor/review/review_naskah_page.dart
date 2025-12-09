@@ -68,22 +68,25 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
   }
 
   Future<void> _terimaReview(NaskahSubmission naskah) async {
+    // Simpan ScaffoldMessenger sebelum masuk async gap
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Konfirmasi'),
         content: Text('Apakah Anda yakin ingin menerima review naskah "${naskah.judul}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               
               // Show loading
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 const SnackBar(
                   content: Text('Memproses permintaan...'),
                   duration: Duration(seconds: 1),
@@ -96,13 +99,15 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
                   'current_editor_id', // TODO: Ambil dari auth
                 );
 
+                if (!mounted) return;
+
                 if (response.sukses) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text(response.pesan)),
                   );
                   _loadData(); // Reload data
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text(response.pesan),
                       backgroundColor: AppTheme.errorRed,
@@ -110,7 +115,8 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
                   );
                 }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                if (!mounted) return;
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text('Terjadi kesalahan: ${e.toString()}'),
                     backgroundColor: AppTheme.errorRed,
@@ -127,11 +133,14 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
   }
 
   void _tugaskanEditorLain(NaskahSubmission naskah) {
+    // Simpan ScaffoldMessenger sebelum masuk async gap
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _TugaskanEditorDialog(
+      builder: (bottomSheetContext) => _TugaskanEditorDialog(
         naskah: naskah,
         onTugaskan: (idEditor, alasan) async {
           try {
@@ -141,13 +150,15 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
               alasan,
             );
 
+            if (!mounted) return;
+
             if (response.sukses) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(content: Text(response.pesan)),
               );
               _loadData(); // Reload data
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text(response.pesan),
                   backgroundColor: AppTheme.errorRed,
@@ -155,7 +166,8 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
               );
             }
           } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            if (!mounted) return;
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Text('Terjadi kesalahan: ${e.toString()}'),
                 backgroundColor: AppTheme.errorRed,
@@ -390,10 +402,10 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (naskah.subJudul.isNotEmpty) ...[
+                      if (naskah.subJudul?.isNotEmpty ?? false) ...[
                         const SizedBox(height: 4),
                         Text(
-                          naskah.subJudul,
+                          naskah.subJudul!,
                           style: AppTheme.bodySmall.copyWith(
                             color: AppTheme.greyMedium,
                             fontStyle: FontStyle.italic,
@@ -684,6 +696,8 @@ class _TugaskanEditorDialogState extends State<_TugaskanEditorDialog> {
     try {
       final response = await ReviewNaskahService.getEditorTersedia();
       
+      if (!mounted) return;
+
       if (response.sukses && response.data != null) {
         setState(() {
           _editorList = response.data!;
@@ -698,6 +712,7 @@ class _TugaskanEditorDialogState extends State<_TugaskanEditorDialog> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -833,15 +848,30 @@ class _TugaskanEditorDialogState extends State<_TugaskanEditorDialog> {
                                 ],
                               ),
                               trailing: editor.tersedia
-                                  ? Radio<String>(
-                                      value: editor.id,
-                                      groupValue: _selectedEditorId,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedEditorId = value;
-                                        });
-                                      },
-                                      fillColor: WidgetStateProperty.all(AppTheme.primaryGreen),
+                                  ? Container(
+                                      width: 20,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: _selectedEditorId == editor.id 
+                                              ? AppTheme.primaryGreen 
+                                              : AppTheme.greyMedium,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: _selectedEditorId == editor.id
+                                          ? Center(
+                                              child: Container(
+                                                width: 10,
+                                                height: 10,
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: AppTheme.primaryGreen,
+                                                ),
+                                              ),
+                                            )
+                                          : null,
                                     )
                                   : Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

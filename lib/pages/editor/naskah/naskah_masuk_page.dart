@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/editor/editor_models.dart';
-import 'package:publishify/services/writer/editor_service.dart';
+import 'package:publishify/models/editor/review_models.dart' show StatusReview;
+import 'package:publishify/services/editor/editor_service.dart';
 import 'package:publishify/utils/editor_navigation.dart';
 
 /// Halaman Naskah Masuk untuk Editor
@@ -28,8 +29,20 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
     try {
       setState(() => _isLoading = true);
       
+      // Parse status filter
+      StatusReview? statusFilter;
+      if (_selectedFilter != 'semua') {
+        try {
+          statusFilter = StatusReview.values.firstWhere(
+            (e) => e.name == _selectedFilter,
+          );
+        } catch (_) {
+          // Ignore if not found
+        }
+      }
+      
       final assignments = await EditorService.getReviewAssignments(
-        status: _selectedFilter == 'semua' ? null : _selectedFilter,
+        status: statusFilter,
       );
       
       setState(() {
@@ -131,7 +144,7 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
         });
         _loadNaskahMasuk();
       },
-      selectedColor: AppTheme.primaryGreen.withOpacity(0.2),
+      selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.2),
       checkmarkColor: AppTheme.primaryGreen,
       labelStyle: TextStyle(
         color: isSelected ? AppTheme.primaryGreen : Colors.grey[700],
@@ -364,7 +377,7 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -399,7 +412,7 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -451,7 +464,9 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
   }
 
   void _openNaskahDetail(ReviewAssignment naskah) {
-    EditorNavigation.toDetailReviewNaskah(context, naskah.idNaskah);
+    if (naskah.idNaskah != null) {
+      EditorNavigation.toDetailReviewNaskah(context, naskah.idNaskah!);
+    }
   }
 
   void _startReview(ReviewAssignment naskah) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/models/writer/auth_models.dart';
-import 'package:publishify/services/writer/auth_service.dart';
-import 'package:publishify/utils/routes.dart';
+import 'package:publishify/models/general/auth_models.dart';
+import 'package:publishify/services/general/auth_service.dart';
 import 'package:logger/logger.dart';
 
 /// Controller untuk mengelola navigasi berdasarkan peran pengguna
@@ -20,14 +19,14 @@ class RoleNavigationController {
   static String getRoleBasedRoute(List<String> userRoles) {
     // Prioritas role: admin > editor > percetakan > penulis
     if (userRoles.contains('admin')) {
-      return AppRoutes.dashboardAdmin;
+      return '/dashboard/admin';
     } else if (userRoles.contains('editor')) {
-      return AppRoutes.dashboardEditor;
+      return '/dashboard/editor';
     } else if (userRoles.contains('percetakan')) {
-      return AppRoutes.dashboardPercetakan;
+      return '/dashboard/percetakan';
     } else {
       // Default ke penulis jika role tidak dikenali atau penulis
-      return AppRoutes.dashboardPenulis;
+      return '/dashboard/penulis';
     }
   }
 
@@ -63,6 +62,7 @@ class RoleNavigationController {
       
       // Dapatkan route berdasarkan role
       String targetRoute = getRoleBasedRoute(userRoles);
+      if(context.mounted == false) return;
       
       // Navigate to appropriate dashboard
       Navigator.of(context).pushNamedAndRemoveUntil(
@@ -75,7 +75,7 @@ class RoleNavigationController {
       logger.e('❌ Error in role navigation: $e');
       // Fallback ke dashboard penulis jika error
       Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.dashboardPenulis,
+        '/dashboard/penulis',
         (route) => false,
       );
     }
@@ -95,6 +95,7 @@ class RoleNavigationController {
       
       // Dapatkan route berdasarkan role
       String targetRoute = getRoleBasedRoute(userRoles);
+      if(context.mounted == false) return;
       
       // Navigate to appropriate dashboard
       Navigator.of(context).pushNamedAndRemoveUntil(
@@ -107,7 +108,7 @@ class RoleNavigationController {
       logger.e('❌ Error in role navigation after register: $e');
       // Fallback ke dashboard penulis jika error
       Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.dashboardPenulis,
+        '/dashboard/penulis',
         (route) => false,
       );
     }

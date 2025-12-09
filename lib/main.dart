@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/utils/routes.dart';
+import 'package:publishify/routes/app_routes.dart';
 
 Future<void> main() async {
   // Load .env file
@@ -19,8 +19,8 @@ class MainApp extends StatelessWidget {
       title: 'Publishify',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.splash,
-      routes: AppRoutes.getRoutes(),
+      initialRoute: '/',
+      onGenerateRoute: AppRoutes.generateRoute,
     );
   }
 }

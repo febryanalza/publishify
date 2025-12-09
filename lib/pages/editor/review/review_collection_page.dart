@@ -67,11 +67,15 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
   }
 
   void _onTerimaBuku(BukuMasukReview book) async {
+    // Simpan navigator dan scaffoldMessenger sebelum masuk async gap
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
+      builder: (dialogContext) => const Center(
         child: CircularProgressIndicator(
           color: AppTheme.primaryGreen,
         ),
@@ -80,10 +84,12 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
 
     try {
       final response = await ReviewCollectionService.terimaBuku(book.id);
-      Navigator.pop(context); // Close loading dialog
+      
+      if (!mounted) return;
+      navigator.pop(); // Close loading dialog
 
       if (response.sukses) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(response.pesan),
             backgroundColor: AppTheme.googleGreen,
@@ -94,24 +100,29 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
         _showErrorDialog(response.pesan);
       }
     } catch (e) {
-      Navigator.pop(context);
+      if (!mounted) return;
+      navigator.pop();
       _showErrorDialog('Gagal menerima buku: ${e.toString()}');
     }
   }
 
   void _onTugaskanEditor(BukuMasukReview book) {
+    // Simpan navigator dan scaffoldMessenger sebelum masuk async gap
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     showDialog(
       context: context,
-      builder: (context) => _TugaskanEditorDialog(
+      builder: (dialogContext) => _TugaskanEditorDialog(
         book: book,
         onSubmit: (editorId, alasan) async {
-          Navigator.pop(context);
+          Navigator.pop(dialogContext);
           
           // Show loading
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => const Center(
+            builder: (loadingContext) => const Center(
               child: CircularProgressIndicator(
                 color: AppTheme.primaryGreen,
               ),
@@ -120,14 +131,16 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
 
           try {
             final response = await ReviewCollectionService.tugaskanEditorLain(
-              book.id, 
-              editorId, 
-              alasan
+              idReview: book.id, 
+              idEditorBaru: editorId, 
+              alasan: alasan,
             );
-            Navigator.pop(context); // Close loading
+            
+            if (!mounted) return;
+            navigator.pop(); // Close loading
 
             if (response.sukses) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text(response.pesan),
                   backgroundColor: AppTheme.googleGreen,
@@ -138,7 +151,8 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
               _showErrorDialog(response.pesan);
             }
           } catch (e) {
-            Navigator.pop(context);
+            if (!mounted) return;
+            navigator.pop();
             _showErrorDialog('Gagal menugaskan editor: ${e.toString()}');
           }
         },
@@ -485,10 +499,10 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (book.subJudul.isNotEmpty) ...[
+                    if (book.subJudul?.isNotEmpty ?? false) ...[
                       const SizedBox(height: 2),
                       Text(
-                        book.subJudul,
+                        book.subJudul!,
                         style: AppTheme.bodySmall.copyWith(
                           color: AppTheme.greyMedium,
                           fontStyle: FontStyle.italic,
@@ -503,7 +517,7 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
                     _buildMetadataRow('Penulis', book.namaPenulis),
                     _buildMetadataRow('Genre', '${book.kategori} • ${book.genre}'),
                     _buildMetadataRow('Halaman', '${book.jumlahHalaman} hal • ${(book.jumlahKata / 1000).toStringAsFixed(0)}k kata'),
-                    _buildMetadataRow('Submit', _formatDate(book.tanggalSubmit)),
+                    _buildMetadataRow('Submit', _formatDate(book.tanggalSubmit ?? book.tanggalMasuk)),
                     
                     if (book.deadlineReview != null) 
                       _buildMetadataRow(
@@ -1053,15 +1067,28 @@ class _TugaskanEditorDialogState extends State<_TugaskanEditorDialog> {
         ),
         child: Row(
           children: [
-            Radio<String>(
-              value: editor.id,
-              groupValue: _selectedEditorId,
-              onChanged: (value) {
-                setState(() {
-                  _selectedEditorId = value;
-                });
-              },
-              fillColor: WidgetStateProperty.all(AppTheme.primaryGreen),
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppTheme.primaryGreen : AppTheme.greyMedium,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 8),
             Expanded(

@@ -293,6 +293,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            Widget buildRadioIndicator(bool isSelected) {
+              return Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryGreen : AppTheme.greyMedium,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Center(
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primaryGreen,
+                          ),
+                        ),
+                      )
+                    : null,
+              );
+            }
+
             return AlertDialog(
               title: const Text('Filter Notifikasi'),
               content: Column(
@@ -301,15 +327,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   // Filter Status Dibaca
                   const Text('Status Dibaca:', style: TextStyle(fontWeight: FontWeight.bold)),
                   ListTile(
-                    leading: Radio<bool?>(
-                      value: null,
-                      groupValue: tempDibaca,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempDibaca = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempDibaca == null),
                     title: const Text('Semua'),
                     onTap: () {
                       setDialogState(() {
@@ -318,15 +336,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     },
                   ),
                   ListTile(
-                    leading: Radio<bool?>(
-                      value: true,
-                      groupValue: tempDibaca,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempDibaca = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempDibaca == true),
                     title: const Text('Sudah Dibaca'),
                     onTap: () {
                       setDialogState(() {
@@ -335,15 +345,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     },
                   ),
                   ListTile(
-                    leading: Radio<bool?>(
-                      value: false,
-                      groupValue: tempDibaca,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempDibaca = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempDibaca == false),
                     title: const Text('Belum Dibaca'),
                     onTap: () {
                       setDialogState(() {
@@ -356,15 +358,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   // Filter Tipe
                   const Text('Tipe:', style: TextStyle(fontWeight: FontWeight.bold)),
                   ListTile(
-                    leading: Radio<String?>(
-                      value: null,
-                      groupValue: tempTipe,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempTipe = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempTipe == null),
                     title: const Text('Semua'),
                     onTap: () {
                       setDialogState(() {
@@ -373,15 +367,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     },
                   ),
                   ListTile(
-                    leading: Radio<String?>(
-                      value: 'info',
-                      groupValue: tempTipe,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempTipe = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempTipe == 'info'),
                     title: const Text('Info'),
                     onTap: () {
                       setDialogState(() {
@@ -390,15 +376,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     },
                   ),
                   ListTile(
-                    leading: Radio<String?>(
-                      value: 'sukses',
-                      groupValue: tempTipe,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempTipe = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempTipe == 'sukses'),
                     title: const Text('Sukses'),
                     onTap: () {
                       setDialogState(() {
@@ -407,15 +385,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     },
                   ),
                   ListTile(
-                    leading: Radio<String?>(
-                      value: 'peringatan',
-                      groupValue: tempTipe,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempTipe = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempTipe == 'peringatan'),
                     title: const Text('Peringatan'),
                     onTap: () {
                       setDialogState(() {
@@ -424,15 +394,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     },
                   ),
                   ListTile(
-                    leading: Radio<String?>(
-                      value: 'error',
-                      groupValue: tempTipe,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          tempTipe = value;
-                        });
-                      },
-                    ),
+                    leading: buildRadioIndicator(tempTipe == 'error'),
                     title: const Text('Error'),
                     onTap: () {
                       setDialogState(() {

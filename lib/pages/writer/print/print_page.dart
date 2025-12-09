@@ -191,7 +191,7 @@ class _PrintPageState extends State<PrintPage> {
           _buildSectionCard(
             title: 'Pilih Naskah',
             child: DropdownButtonFormField<String>(
-              value: _selectedNaskah,
+              initialValue: _selectedNaskah,
               decoration: AppTheme.inputDecoration(
                 hintText: 'Pilih naskah yang akan dicetak',
               ),
@@ -254,7 +254,7 @@ class _PrintPageState extends State<PrintPage> {
               children: [
                 // Format Kertas
                 DropdownButtonFormField<String>(
-                  value: _selectedFormatKertas,
+                  initialValue: _selectedFormatKertas,
                   decoration: AppTheme.inputDecoration(
                     hintText: 'Pilih format kertas',
                   ),
@@ -274,7 +274,7 @@ class _PrintPageState extends State<PrintPage> {
 
                 // Jenis Kertas
                 DropdownButtonFormField<String>(
-                  value: _selectedJenisKertas,
+                  initialValue: _selectedJenisKertas,
                   decoration: AppTheme.inputDecoration(
                     hintText: 'Pilih jenis kertas',
                   ),
@@ -294,7 +294,7 @@ class _PrintPageState extends State<PrintPage> {
 
                 // Jenis Cover
                 DropdownButtonFormField<String>(
-                  value: _selectedJenisCover,
+                  initialValue: _selectedJenisCover,
                   decoration: AppTheme.inputDecoration(
                     hintText: 'Pilih jenis cover',
                   ),

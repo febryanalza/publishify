@@ -1,412 +1,325 @@
-import 'dart:async';
-import 'package:publishify/models/editor/review_collection_models.dart';
+/// Review Collection Service - Service untuk Buku Masuk Review
+/// Mengelola buku yang masuk untuk direview oleh editor
+/// Best Practice: Integration dengan EditorApiService
 
-/// Service untuk mengelola pengumpulan review
-/// Menyediakan data dummy yang mudah diubah saat integrasi backend
+import 'package:publishify/models/editor/review_collection_models.dart';
+import 'package:publishify/models/editor/review_models.dart';
+import 'package:publishify/services/editor/editor_api_service.dart';
+import 'package:logger/logger.dart';
+
+final _logger = Logger(
+  printer: PrettyPrinter(methodCount: 0, printTime: true),
+);
+
+/// Service untuk mengelola Review Collection
 class ReviewCollectionService {
-  
-  /// Ambil semua buku yang masuk untuk direview dengan filter
-  static Future<ReviewCollectionResponse<List<BukuMasukReview>>> getBukuMasukReview({
+  // Singleton
+  static final ReviewCollectionService _instance = ReviewCollectionService._internal();
+  factory ReviewCollectionService() => _instance;
+  ReviewCollectionService._internal();
+
+  // =====================================================
+  // GET BUKU MASUK
+  // =====================================================
+
+  /// Get daftar buku masuk untuk direview
+  static Future<BukuMasukResponse> getBukuMasukReview({
     String filter = 'semua',
-    int page = 1,
     int limit = 20,
   }) async {
     try {
-      // Simulasi network delay
-      await Future.delayed(const Duration(milliseconds: 800));
+      final reviewFilter = FilterReview(
+        status: _parseFilter(filter),
+        limit: limit,
+        urutkan: 'ditugaskanPada',
+        arah: 'desc',
+      );
 
-      // TODO: Replace dengan API call ke backend
-      // final response = await http.get('/api/editor/review-collection?filter=$filter&page=$page&limit=$limit');
-      
-      final allBooks = _getDummyBooks();
-      
-      // Filter berdasarkan status
-      List<BukuMasukReview> filteredBooks;
-      if (filter == 'semua') {
-        filteredBooks = allBooks;
-      } else {
-        filteredBooks = allBooks.where((book) => book.status == filter).toList();
+      final response = await EditorApiService.ambilReviewSaya(filter: reviewFilter);
+
+      if (response.sukses && response.data != null) {
+        final books = response.data!
+            .map((review) => BukuMasukReview.fromReviewNaskah(review))
+            .toList();
+
+        // Calculate filter counts
+        final counts = await _getFilterCounts();
+
+        return BukuMasukResponse.success(
+          books,
+          metadata: {'filters': counts},
+        );
       }
 
-      // Sort by priority dan tanggal submit
-      filteredBooks.sort((a, b) {
-        // Prioritas tinggi dulu
-        int priorityComparison = b.prioritas.compareTo(a.prioritas);
-        if (priorityComparison != 0) return priorityComparison;
-        
-        // Kemudian tanggal submit terbaru
-        return b.tanggalSubmit.compareTo(a.tanggalSubmit);
-      });
-
-      return ReviewCollectionResponse<List<BukuMasukReview>>(
-        sukses: true,
-        pesan: 'Data berhasil dimuat',
-        data: filteredBooks,
-        metadata: {
-          'total': filteredBooks.length,
-          'page': page,
-          'limit': limit,
-          'filters': _getFilterCounts(allBooks),
-        },
-      );
-
+      return BukuMasukResponse.error(response.pesan);
     } catch (e) {
-      return ReviewCollectionResponse<List<BukuMasukReview>>(
-        sukses: false,
-        pesan: 'Gagal memuat data: ${e.toString()}',
-        data: null,
-      );
+      _logger.e('Error getBukuMasukReview: $e');
+      return BukuMasukResponse.error('Terjadi kesalahan: ${e.toString()}');
     }
   }
 
-  /// Ambil detail buku untuk review
-  static Future<ReviewCollectionResponse<DetailBukuReview>> getDetailBuku(String idBuku) async {
+  /// Parse filter string ke StatusReview enum
+  static StatusReview? _parseFilter(String filter) {
+    switch (filter.toLowerCase()) {
+      case 'menunggu':
+      case 'ditugaskan':
+        return StatusReview.ditugaskan;
+      case 'sedang_review':
+      case 'dalam_proses':
+        return StatusReview.dalam_proses;
+      case 'selesai':
+        return StatusReview.selesai;
+      case 'dibatalkan':
+        return StatusReview.dibatalkan;
+      default:
+        return null;
+    }
+  }
+
+  /// Get filter counts dari statistik
+  static Future<Map<String, int>> _getFilterCounts() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // TODO: Replace dengan API call
-      // final response = await http.get('/api/editor/review-collection/$idBuku');
+      final response = await EditorApiService.ambilStatistikReview();
       
-      final allBooks = _getDummyBooks();
-      final book = allBooks.firstWhere((b) => b.id == idBuku);
+      if (response.sukses && response.data != null) {
+        final stats = response.data!;
+        return {
+          'semua': stats.totalReview,
+          'menunggu': stats.perStatus['ditugaskan'] ?? 0,
+          'sedang_review': stats.perStatus['dalam_proses'] ?? 0,
+          'selesai': stats.perStatus['selesai'] ?? 0,
+        };
+      }
       
-      final detail = DetailBukuReview(
-        bukuInfo: book,
-        riwayatReview: _getDummyRiwayatReview(idBuku),
-        fileContent: null, // Bisa diisi jika ada preview
-        tagKeyword: _getDummyKeywords(book.genre),
-        metadata: {
-          'readingTime': '${(book.jumlahKata / 200).ceil()} menit',
-          'complexity': book.jumlahKata > 50000 ? 'Tinggi' : book.jumlahKata > 20000 ? 'Sedang' : 'Rendah',
-          'estimatedReviewTime': '${(book.jumlahHalaman * 2)} menit',
-        },
-      );
-
-      return ReviewCollectionResponse<DetailBukuReview>(
-        sukses: true,
-        pesan: 'Detail buku berhasil dimuat',
-        data: detail,
-      );
-
+      return {};
     } catch (e) {
-      return ReviewCollectionResponse<DetailBukuReview>(
-        sukses: false,
-        pesan: 'Gagal memuat detail buku: ${e.toString()}',
-        data: null,
-      );
+      return {};
     }
   }
+
+  // =====================================================
+  // DETAIL BUKU
+  // =====================================================
+
+  /// Get detail buku by ID
+  static Future<DetailBukuResponse> getDetailBuku(String id) async {
+    try {
+      final response = await EditorApiService.ambilReviewById(id);
+
+      if (response.sukses && response.data != null) {
+        final detail = DetailBukuReview.fromReviewNaskah(response.data!);
+        return DetailBukuResponse.success(detail);
+      }
+
+      return DetailBukuResponse.error(response.pesan);
+    } catch (e) {
+      _logger.e('Error getDetailBuku: $e');
+      return DetailBukuResponse.error('Terjadi kesalahan: ${e.toString()}');
+    }
+  }
+
+  // =====================================================
+  // ACTIONS
+  // =====================================================
 
   /// Terima buku untuk direview
-  static Future<ReviewCollectionResponse<bool>> terimaBuku(String idBuku) async {
+  static Future<SimpleResponse> terimaBuku(String id) async {
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // TODO: Replace dengan API call
-      // final response = await http.post('/api/editor/review-collection/$idBuku/accept');
-
-      return const ReviewCollectionResponse<bool>(
-        sukses: true,
-        pesan: 'Buku berhasil diterima untuk direview',
-        data: true,
+      final request = PerbaruiReviewRequest(
+        status: StatusReview.dalam_proses,
       );
 
+      final response = await EditorApiService.perbaruiReview(id, request);
+
+      if (response.sukses) {
+        return SimpleResponse.success('Buku berhasil diterima untuk direview');
+      }
+
+      return SimpleResponse.error(response.pesan);
     } catch (e) {
-      return ReviewCollectionResponse<bool>(
-        sukses: false,
-        pesan: 'Gagal menerima buku: ${e.toString()}',
-        data: false,
-      );
+      _logger.e('Error terimaBuku: $e');
+      return SimpleResponse.error('Terjadi kesalahan: ${e.toString()}');
     }
   }
 
-  /// Tugaskan editor lain
-  static Future<ReviewCollectionResponse<bool>> tugaskanEditorLain(
-    String idBuku, 
-    String idEditor, 
-    String alasan
+  /// Tugaskan buku ke editor lain
+  static Future<SimpleResponse> tugaskanKeEditor(
+    String idBuku,
+    String idEditor,
+    String alasan,
   ) async {
     try {
-      await Future.delayed(const Duration(milliseconds: 400));
+      // Get review detail first to get idNaskah
+      final detailResponse = await EditorApiService.ambilReviewById(idBuku);
+      
+      if (!detailResponse.sukses || detailResponse.data == null) {
+        return SimpleResponse.error('Buku tidak ditemukan');
+      }
 
-      // TODO: Replace dengan API call
-      // final response = await http.post('/api/editor/review-collection/$idBuku/reassign', {
-      //   'idEditor': idEditor,
-      //   'alasan': alasan,
-      // });
-
-      return const ReviewCollectionResponse<bool>(
-        sukses: true,
-        pesan: 'Buku berhasil ditugaskan ke editor lain',
-        data: true,
+      final request = TugaskanReviewRequest(
+        idNaskah: detailResponse.data!.idNaskah,
+        idEditor: idEditor,
+        catatan: alasan,
       );
 
+      final response = await EditorApiService.tugaskanReview(request);
+
+      if (response.sukses) {
+        return SimpleResponse.success('Buku berhasil ditugaskan ke editor lain');
+      }
+
+      return SimpleResponse.error(response.pesan);
     } catch (e) {
-      return ReviewCollectionResponse<bool>(
-        sukses: false,
-        pesan: 'Gagal menugaskan editor: ${e.toString()}',
-        data: false,
-      );
+      _logger.e('Error tugaskanKeEditor: $e');
+      return SimpleResponse.error('Terjadi kesalahan: ${e.toString()}');
     }
   }
 
-  /// Submit review
-  static Future<ReviewCollectionResponse<bool>> submitReview(InputReview review) async {
+  /// Submit review dengan rekomendasi
+  static Future<SimpleResponse> submitReview({
+    required String idReview,
+    required String rekomendasi, // setujui, revisi, tolak
+    required String catatan,
+    String? feedback,
+  }) async {
     try {
-      await Future.delayed(const Duration(milliseconds: 600));
+      // Add feedback if provided (backend hanya menerima bab, halaman, komentar)
+      if (feedback != null && feedback.isNotEmpty && feedback.length >= 10) {
+        final feedbackRequest = TambahFeedbackRequest(
+          komentar: feedback,
+        );
+        await EditorApiService.tambahFeedback(idReview, feedbackRequest);
+      }
 
-      // TODO: Replace dengan API call
-      // final response = await http.post('/api/editor/review-collection/submit', review.toJson());
-
-      return const ReviewCollectionResponse<bool>(
-        sukses: true,
-        pesan: 'Review berhasil disubmit',
-        data: true,
+      // Submit review
+      final rekomendasiEnum = Rekomendasi.values.firstWhere(
+        (e) => e.name == rekomendasi,
+        orElse: () => Rekomendasi.revisi,
       );
 
+      final request = SubmitReviewRequest(
+        rekomendasi: rekomendasiEnum,
+        catatan: catatan,
+      );
+
+      final response = await EditorApiService.submitReview(idReview, request);
+
+      if (response.sukses) {
+        return SimpleResponse.success('Review berhasil disubmit');
+      }
+
+      return SimpleResponse.error(response.pesan);
     } catch (e) {
-      return ReviewCollectionResponse<bool>(
-        sukses: false,
-        pesan: 'Gagal submit review: ${e.toString()}',
-        data: false,
-      );
+      _logger.e('Error submitReview: $e');
+      return SimpleResponse.error('Terjadi kesalahan: ${e.toString()}');
     }
   }
 
-  /// Get available editors for reassignment
-  static Future<ReviewCollectionResponse<List<EditorOption>>> getAvailableEditors() async {
+  /// Submit review dengan InputReview model
+  static Future<SimpleResponse> submitReviewFromInput(InputReview input) async {
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
+      // Combine feedback list jadi satu string (backend tidak support rating/skor)
+      final feedbackStr = input.feedback.isNotEmpty 
+          ? input.feedback.join('\n') 
+          : null;
 
-      // TODO: Replace dengan API call
-      // final response = await http.get('/api/editor/available');
-
-      final editors = [
-        const EditorOption(
-          id: 'editor_001',
-          nama: 'Dr. Sarah Johnson',
-          spesialisasi: ['Fiksi', 'Drama'],
-          workload: 3,
-          rating: 4.8,
-        ),
-        const EditorOption(
-          id: 'editor_002',
-          nama: 'Prof. Ahmad Rahman',
-          spesialisasi: ['Non-Fiksi', 'Sejarah'],
-          workload: 5,
-          rating: 4.9,
-        ),
-        const EditorOption(
-          id: 'editor_003',
-          nama: 'Maria Santos',
-          spesialisasi: ['Romance', 'Young Adult'],
-          workload: 2,
-          rating: 4.7,
-        ),
-      ];
-
-      return ReviewCollectionResponse<List<EditorOption>>(
-        sukses: true,
-        pesan: 'Daftar editor tersedia',
-        data: editors,
+      return await submitReview(
+        idReview: input.idBuku,
+        rekomendasi: input.rekomendasi,
+        catatan: input.catatan,
+        feedback: feedbackStr,
       );
-
     } catch (e) {
-      return ReviewCollectionResponse<List<EditorOption>>(
-        sukses: false,
-        pesan: 'Gagal memuat daftar editor: ${e.toString()}',
-        data: [],
+      _logger.e('Error submitReviewFromInput: $e');
+      return SimpleResponse.error('Terjadi kesalahan: ${e.toString()}');
+    }
+  }
+
+  /// Batalkan review
+  static Future<SimpleResponse> batalkanReview(String id, String alasan) async {
+    try {
+      final response = await EditorApiService.batalkanReview(id, alasan);
+
+      if (response.sukses) {
+        return SimpleResponse.success('Review berhasil dibatalkan');
+      }
+
+      return SimpleResponse.error(response.pesan);
+    } catch (e) {
+      _logger.e('Error batalkanReview: $e');
+      return SimpleResponse.error('Terjadi kesalahan: ${e.toString()}');
+    }
+  }
+
+  // =====================================================
+  // DAFTAR EDITOR
+  // =====================================================
+
+  /// Get daftar editor yang tersedia untuk ditugaskan
+  static Future<EditorListResponse> getAvailableEditors() async {
+    try {
+      // Call API to get available editors
+      // Untuk sementara, gunakan placeholder sampai backend ready
+      final response = await EditorApiService.ambilDaftarEditor();
+      
+      if (response.sukses && response.data != null) {
+        final editors = response.data!
+            .map((e) => EditorOption.fromJson(e))
+            .toList();
+        return EditorListResponse.success(editors);
+      }
+      
+      return EditorListResponse.error(response.pesan);
+    } catch (e) {
+      _logger.e('Error getAvailableEditors: $e');
+      return EditorListResponse.error('Gagal mengambil daftar editor: ${e.toString()}');
+    }
+  }
+
+  /// Tugaskan review ke editor lain
+  static Future<SimpleResponse> tugaskanEditorLain({
+    required String idReview,
+    required String idEditorBaru,
+    String? alasan,
+  }) async {
+    try {
+      // Get review detail first to get idNaskah
+      final detailResponse = await EditorApiService.ambilReviewById(idReview);
+      
+      if (!detailResponse.sukses || detailResponse.data == null) {
+        return SimpleResponse.error('Review tidak ditemukan');
+      }
+
+      final request = TugaskanReviewRequest(
+        idNaskah: detailResponse.data!.idNaskah,
+        idEditor: idEditorBaru,
+        catatan: alasan,
       );
+
+      final response = await EditorApiService.tugaskanReview(request);
+
+      if (response.sukses) {
+        return SimpleResponse.success('Review berhasil ditugaskan ke editor lain');
+      }
+
+      return SimpleResponse.error(response.pesan);
+    } catch (e) {
+      _logger.e('Error tugaskanEditorLain: $e');
+      return SimpleResponse.error('Terjadi kesalahan: ${e.toString()}');
     }
   }
 
-  // ====================================
-  // PRIVATE HELPER METHODS - DUMMY DATA
-  // ====================================
-
-  static List<BukuMasukReview> _getDummyBooks() {
-    return [
-      BukuMasukReview(
-        id: 'book_001',
-        judul: 'Sang Penjaga Waktu',
-        subJudul: 'Petualangan di Dimensi Paralel',
-        sinopsis: 'Kisah seorang pemuda yang mendapat kemampuan untuk melintasi waktu dan harus menyelamatkan dunia dari kehancuran. Dengan kekuatan yang besar, datang tanggung jawab yang lebih besar.',
-        namaPenulis: 'Rafi Pratama',
-        kategori: 'Fiksi',
-        genre: 'Fantasy',
-        status: 'belum_ditugaskan',
-        tanggalSubmit: DateTime.now().subtract(const Duration(days: 2)),
-        deadlineReview: DateTime.now().add(const Duration(days: 5)),
-        urlSampul: 'https://via.placeholder.com/150x200',
-        urlFile: 'manuscript_001.pdf',
-        jumlahHalaman: 320,
-        jumlahKata: 85000,
-        prioritas: 3,
-      ),
-      BukuMasukReview(
-        id: 'book_002',
-        judul: 'Bisnis Digital Era Modern',
-        subJudul: 'Strategi Sukses di Dunia Maya',
-        sinopsis: 'Panduan lengkap memulai dan mengembangkan bisnis digital dari nol hingga sukses. Dilengkapi dengan studi kasus dan tips praktis yang telah terbukti.',
-        namaPenulis: 'Sari Indrawati',
-        kategori: 'Non-Fiksi',
-        genre: 'Bisnis',
-        status: 'ditugaskan',
-        tanggalSubmit: DateTime.now().subtract(const Duration(days: 5)),
-        deadlineReview: DateTime.now().add(const Duration(days: 3)),
-        urlSampul: 'https://via.placeholder.com/150x200',
-        urlFile: 'manuscript_002.pdf',
-        jumlahHalaman: 250,
-        jumlahKata: 55000,
-        editorYangDitugaskan: 'Dr. Sarah Johnson',
-        prioritas: 2,
-      ),
-      BukuMasukReview(
-        id: 'book_003',
-        judul: 'Cinta di Ujung Senja',
-        subJudul: 'Novel Romance Terbaik Tahun Ini',
-        sinopsis: 'Kisah cinta yang mengharukan antara dua jiwa yang saling mencari dalam kegelapan hidup. Sebuah novel yang akan membuat pembaca menangis dan tersenyum bersamaan.',
-        namaPenulis: 'Maya Anggraini',
-        kategori: 'Fiksi',
-        genre: 'Romance',
-        status: 'dalam_review',
-        tanggalSubmit: DateTime.now().subtract(const Duration(days: 8)),
-        deadlineReview: DateTime.now().add(const Duration(days: 1)),
-        urlSampul: 'https://via.placeholder.com/150x200',
-        urlFile: 'manuscript_003.pdf',
-        jumlahHalaman: 280,
-        jumlahKata: 72000,
-        editorYangDitugaskan: 'Maria Santos',
-        prioritas: 1,
-      ),
-      BukuMasukReview(
-        id: 'book_004',
-        judul: 'Algoritma Pembelajaran Mesin',
-        subJudul: 'Teori dan Implementasi Praktis',
-        sinopsis: 'Buku komprehensif tentang machine learning yang cocok untuk pemula hingga expert. Dijelaskan dengan bahasa yang mudah dipahami dan dilengkapi contoh kode.',
-        namaPenulis: 'Dr. Budi Santoso',
-        kategori: 'Non-Fiksi',
-        genre: 'Teknologi',
-        status: 'belum_ditugaskan',
-        tanggalSubmit: DateTime.now().subtract(const Duration(days: 1)),
-        deadlineReview: DateTime.now().add(const Duration(days: 7)),
-        urlSampul: 'https://via.placeholder.com/150x200',
-        urlFile: 'manuscript_004.pdf',
-        jumlahHalaman: 450,
-        jumlahKata: 120000,
-        prioritas: 3,
-      ),
-      BukuMasukReview(
-        id: 'book_005',
-        judul: 'Sejarah Nusantara Modern',
-        subJudul: 'Dari Kolonial hingga Digital',
-        sinopsis: 'Penelusuran mendalam tentang perjalanan bangsa Indonesia dari masa kolonial hingga era digital. Dilengkapi dengan foto-foto bersejarah dan analisis mendalam.',
-        namaPenulis: 'Prof. Indira Sari',
-        kategori: 'Non-Fiksi',
-        genre: 'Sejarah',
-        status: 'selesai',
-        tanggalSubmit: DateTime.now().subtract(const Duration(days: 15)),
-        deadlineReview: DateTime.now().subtract(const Duration(days: 5)),
-        urlSampul: 'https://via.placeholder.com/150x200',
-        urlFile: 'manuscript_005.pdf',
-        jumlahHalaman: 380,
-        jumlahKata: 95000,
-        editorYangDitugaskan: 'Prof. Ahmad Rahman',
-        prioritas: 2,
-      ),
-    ];
-  }
-
-  static List<RiwayatReview> _getDummyRiwayatReview(String idBuku) {
-    // Return different review history based on book ID
-    if (idBuku == 'book_002') {
-      return [
-        RiwayatReview(
-          id: 'review_001',
-          namaEditor: 'Dr. Sarah Johnson',
-          status: 'dalam_review',
-          catatan: 'Sedang dalam proses review mendalam. Buku memiliki potensi yang bagus.',
-          tanggal: DateTime.now().subtract(const Duration(days: 2)),
-          rekomendasi: null,
-        ),
-      ];
-    } else if (idBuku == 'book_003') {
-      return [
-        RiwayatReview(
-          id: 'review_002',
-          namaEditor: 'Maria Santos',
-          status: 'dalam_review',
-          catatan: 'Alur cerita menarik, karakterisasi kuat. Perlu sedikit perbaikan di bagian dialog.',
-          tanggal: DateTime.now().subtract(const Duration(days: 3)),
-          rekomendasi: null,
-        ),
-      ];
-    } else if (idBuku == 'book_005') {
-      return [
-        RiwayatReview(
-          id: 'review_003',
-          namaEditor: 'Prof. Ahmad Rahman',
-          status: 'selesai',
-          catatan: 'Penelitian sangat solid, referensi lengkap. Siap untuk publikasi dengan revisi minor.',
-          tanggal: DateTime.now().subtract(const Duration(days: 5)),
-          rekomendasi: 'setujui',
-        ),
-      ];
+  /// Get daftar editor yang tersedia (versi lama - untuk kompatibilitas)
+  /// @deprecated Use getAvailableEditors() instead
+  static Future<List<Map<String, dynamic>>> getDaftarEditor() async {
+    try {
+      final response = await getAvailableEditors();
+      if (response.sukses && response.data != null) {
+        return response.data!.map((e) => e.toJson()).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
-    return [];
-  }
-
-  static List<String> _getDummyKeywords(String genre) {
-    switch (genre.toLowerCase()) {
-      case 'fantasy':
-        return ['Petualangan', 'Magie', 'Dimensi', 'Pahlawan', 'Quest'];
-      case 'romance':
-        return ['Cinta', 'Drama', 'Emosional', 'Hubungan', 'Konflik'];
-      case 'bisnis':
-        return ['Strategi', 'Digital', 'Marketing', 'Entrepreneurship', 'Inovasi'];
-      case 'teknologi':
-        return ['Algoritma', 'Programming', 'AI', 'Machine Learning', 'Data'];
-      case 'sejarah':
-        return ['Kronologi', 'Analisis', 'Dokumentasi', 'Budaya', 'Politik'];
-      default:
-        return ['Umum', 'Informatif', 'Edukatif'];
-    }
-  }
-
-  static Map<String, int> _getFilterCounts(List<BukuMasukReview> books) {
-    return {
-      'semua': books.length,
-      'belum_ditugaskan': books.where((b) => b.status == 'belum_ditugaskan').length,
-      'ditugaskan': books.where((b) => b.status == 'ditugaskan').length,
-      'dalam_review': books.where((b) => b.status == 'dalam_review').length,
-      'selesai': books.where((b) => b.status == 'selesai').length,
-    };
-  }
-}
-
-/// Model untuk pilihan editor
-class EditorOption {
-  final String id;
-  final String nama;
-  final List<String> spesialisasi;
-  final int workload; // Jumlah review yang sedang dikerjakan
-  final double rating;
-
-  const EditorOption({
-    required this.id,
-    required this.nama,
-    required this.spesialisasi,
-    required this.workload,
-    required this.rating,
-  });
-
-  factory EditorOption.fromJson(Map<String, dynamic> json) {
-    return EditorOption(
-      id: json['id'] ?? '',
-      nama: json['nama'] ?? '',
-      spesialisasi: List<String>.from(json['spesialisasi'] ?? []),
-      workload: json['workload'] ?? 0,
-      rating: (json['rating'] ?? 0.0).toDouble(),
-    );
   }
 }

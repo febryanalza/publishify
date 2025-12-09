@@ -1,0 +1,209 @@
+import 'package:flutter/material.dart';
+import 'package:publishify/utils/theme.dart';
+import 'package:publishify/pages/percetakan/home/percetakan_dashboard_page.dart';
+import 'package:publishify/pages/percetakan/statistics/percetakan_statistics_page.dart';
+import 'package:publishify/pages/percetakan/payments/percetakan_payments_page.dart';
+import 'package:publishify/pages/percetakan/notifications/percetakan_notifications_page.dart';
+import 'package:publishify/pages/percetakan/profile/percetakan_profile_page.dart';
+
+/// Main Navigation Wrapper untuk Percetakan dengan Bottom Navigation
+class PercetakanMainPage extends StatefulWidget {
+  final int initialIndex;
+
+  const PercetakanMainPage({
+    super.key,
+    this.initialIndex = 0,
+  });
+
+  @override
+  State<PercetakanMainPage> createState() => _PercetakanMainPageState();
+}
+
+class _PercetakanMainPageState extends State<PercetakanMainPage> {
+  late int _currentIndex;
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onBottomNavTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: const [
+          PercetakanDashboardPage(),
+          PercetakanStatisticsPage(),
+          PercetakanPaymentsPage(),
+          PercetakanNotificationsPage(),
+          PercetakanProfilePage(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Container(
+            height: 70,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  icon: Icons.inventory_outlined,
+                  activeIcon: Icons.inventory,
+                  label: 'Pesanan',
+                  index: 0,
+                  badge: _getOrderBadge(),
+                ),
+                _buildNavItem(
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart,
+                  label: 'Statistik',
+                  index: 1,
+                ),
+                _buildNavItem(
+                  icon: Icons.payment_outlined,
+                  activeIcon: Icons.payment,
+                  label: 'Pembayaran',
+                  index: 2,
+                  badge: _getPaymentBadge(),
+                ),
+                _buildNavItem(
+                  icon: Icons.notifications_outlined,
+                  activeIcon: Icons.notifications,
+                  label: 'Notifikasi',
+                  index: 3,
+                  badge: _getNotificationBadge(),
+                ),
+                _buildNavItem(
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  label: 'Profile',
+                  index: 4,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+    int? badge,
+  }) {
+    final isActive = _currentIndex == index;
+    final color = isActive ? AppTheme.primaryGreen : Colors.grey;
+
+    return GestureDetector(
+      onTap: () => _onBottomNavTap(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  color: color,
+                  size: 24,
+                ),
+                if (badge != null && badge > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        badge > 99 ? '99+' : badge.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int? _getOrderBadge() {
+    // TODO: Get from order service
+    return 5; // Dummy badge count for new orders
+  }
+
+  int? _getPaymentBadge() {
+    // TODO: Get from payment service
+    return 2; // Dummy badge count for pending payments
+  }
+
+  int? _getNotificationBadge() {
+    // TODO: Get from notification service
+    return 3; // Dummy badge count
+  }
+}

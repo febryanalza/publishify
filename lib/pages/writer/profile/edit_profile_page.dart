@@ -90,9 +90,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         setState(() {
           if (profil != null) {
-            _namaDepanController.text = profil.namaDepan;
-            _namaBelakangController.text = profil.namaBelakang;
-            _namaTampilanController.text = profil.namaTampilan;
+            _namaDepanController.text = profil.namaDepan ?? '';
+            _namaBelakangController.text = profil.namaBelakang ?? '';
+            _namaTampilanController.text = profil.namaTampilan ?? '';
             _bioController.text = profil.bio ?? '';
             _alamatController.text = profil.alamat ?? '';
             _kotaController.text = profil.kota ?? '';
@@ -751,7 +751,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _jenisKelamin, // Will be null, 'L', or 'P'
+          initialValue: _jenisKelamin, // Will be null, 'L', or 'P'
           decoration: InputDecoration(
             hintText: 'Pilih jenis kelamin',
             hintStyle: AppTheme.bodyMedium.copyWith(

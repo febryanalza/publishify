@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/login_page.dart';
 import 'package:publishify/pages/main_layout.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/pages/editor/editor_main_page.dart';
+import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
+import 'package:publishify/services/general/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -27,22 +29,50 @@ class _SplashScreenState extends State<SplashScreen> {
     // Check if user is logged in
     final isLoggedIn = await AuthService.isLoggedIn();
     
+    if (!mounted) return;
+    
     if (isLoggedIn) {
-      // User sudah login, ambil data user
+      // User sudah login, cek peran untuk routing
+      final primaryRole = await AuthService.getPrimaryRole();
       final userName = await AuthService.getNamaTampilan();
       
-      // Navigate to Main Layout (Home Page)
+      if (!mounted) return;
+      
+      // Route berdasarkan peran utama
+      Widget destinationPage;
+      
+      if (primaryRole == 'penulis') {
+        // Arahkan ke halaman penulis dengan bottom navigation (MainLayout)
+        destinationPage = MainLayout(
+          initialIndex: 0,
+          userName: userName,
+        );
+      } else if (primaryRole == 'editor') {
+        // Arahkan ke halaman editor dengan bottom navigation (EditorMainPage)
+        destinationPage = const EditorMainPage(
+          initialIndex: 0,
+        );
+      } else if (primaryRole == 'percetakan') {
+        // Arahkan ke halaman percetakan dengan bottom navigation (PercetakanMainPage)
+        destinationPage = const PercetakanMainPage(
+          initialIndex: 0,
+        );
+      } else {
+        // Default: arahkan ke MainLayout (untuk penulis)
+        destinationPage = MainLayout(
+          initialIndex: 0,
+          userName: userName,
+        );
+      }
+      
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => MainLayout(
-            initialIndex: 0,
-            userName: userName,
-          ),
+          builder: (context) => destinationPage,
         ),
       );
     } else {
-      // User belum login, navigate ke Login Page
+      // User belum login atau cache dihapus, navigate ke Login Page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

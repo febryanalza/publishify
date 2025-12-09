@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/editor/review_collection_models.dart';
+import 'package:publishify/models/editor/review_naskah_models.dart' show RiwayatReview;
 import 'package:publishify/services/editor/review_collection_service.dart';
 
 /// Halaman detail buku untuk review
@@ -91,7 +92,9 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
         rating: _selectedRating,
       );
 
-      final response = await ReviewCollectionService.submitReview(review);
+      final response = await ReviewCollectionService.submitReviewFromInput(review);
+
+      if (!mounted) return;
 
       if (response.sukses) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,6 +115,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Gagal submit review: ${e.toString()}'),
@@ -226,7 +230,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
   }
 
   Widget _buildBookInfo() {
-    final book = _detailBuku!.bukuInfo;
+    final detail = _detailBuku!;
     
     return Card(
       elevation: 2,
@@ -251,11 +255,11 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AppTheme.greyDisabled),
                   ),
-                  child: book.urlSampul != null
+                  child: detail.urlSampul != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            book.urlSampul!,
+                            detail.urlSampul!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => const Icon(
                               Icons.book,
@@ -278,15 +282,15 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        book.judul,
+                        detail.judul,
                         style: AppTheme.headingSmall.copyWith(
                           fontSize: 16,
                         ),
                       ),
-                      if (book.subJudul.isNotEmpty) ...[
+                      if (detail.subJudul.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
-                          book.subJudul,
+                          detail.subJudul,
                           style: AppTheme.bodyMedium.copyWith(
                             color: AppTheme.greyMedium,
                             fontStyle: FontStyle.italic,
@@ -295,20 +299,12 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                       ],
                       const SizedBox(height: 12),
                       
-                      _buildInfoRow(Icons.person, 'Penulis', book.namaPenulis),
-                      _buildInfoRow(Icons.category, 'Kategori', book.kategori),
-                      _buildInfoRow(Icons.local_offer, 'Genre', book.genre),
-                      _buildInfoRow(Icons.description, 'Halaman', '${book.jumlahHalaman} hal'),
-                      _buildInfoRow(Icons.text_fields, 'Kata', '${(book.jumlahKata / 1000).toStringAsFixed(1)}k kata'),
-                      _buildInfoRow(Icons.schedule, 'Submit', _formatDate(book.tanggalSubmit)),
-                      
-                      if (book.deadlineReview != null)
-                        _buildInfoRow(
-                          Icons.alarm, 
-                          'Deadline', 
-                          _formatDate(book.deadlineReview!),
-                          isUrgent: DateTime.now().isAfter(book.deadlineReview!.subtract(const Duration(days: 1))),
-                        ),
+                      _buildInfoRow(Icons.person, 'Penulis', detail.penulis),
+                      _buildInfoRow(Icons.category, 'Kategori', detail.kategori),
+                      _buildInfoRow(Icons.local_offer, 'Genre', detail.genre),
+                      _buildInfoRow(Icons.description, 'Halaman', '${detail.jumlahHalaman} hal'),
+                      _buildInfoRow(Icons.text_fields, 'Kata', '${(detail.jumlahKata / 1000).toStringAsFixed(1)}k kata'),
+                      _buildInfoRow(Icons.schedule, 'Submit', _formatDate(detail.tanggalMasuk)),
                     ],
                   ),
                 ),
@@ -327,7 +323,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              book.sinopsis,
+              detail.sinopsis,
               style: AppTheme.bodyMedium.copyWith(
                 color: AppTheme.primaryDark,
                 height: 1.5,
@@ -515,7 +511,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
   Widget _buildRiwayatReview() {
     final riwayat = _detailBuku!.riwayatReview;
     
-    if (riwayat.isEmpty) return Container();
+    if (riwayat == null || riwayat.isEmpty) return Container();
 
     return Card(
       elevation: 2,
@@ -966,7 +962,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       if (futureDays == 1) {
         return 'Besok';
       } else {
-        return '${futureDays} hari lagi';
+        return '$futureDays hari lagi';
       }
     }
   }

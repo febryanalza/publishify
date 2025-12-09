@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/services/general/auth_service.dart';
 
 class PercetakanService {
   static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://10.0.2.2:4000';

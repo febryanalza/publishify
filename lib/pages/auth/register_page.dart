@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/success_page.dart';
-import 'package:publishify/services/writer/auth_service.dart';
-import 'package:publishify/models/writer/auth_models.dart';
+import 'package:publishify/services/general/auth_service.dart';
+import 'package:publishify/models/general/auth_models.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -27,6 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final List<Map<String, String>> _jenisPeranOptions = [
     {'value': 'penulis', 'label': 'Penulis'},
     {'value': 'editor', 'label': 'Editor'},
+    {'value': 'percetakan', 'label': 'Percetakan'},
   ];
 
   @override
@@ -237,7 +238,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     prefixIcon: null,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
-                  value: _selectedJenisPeran,
+                  initialValue: _selectedJenisPeran,
                   items: _jenisPeranOptions.map((Map<String, String> option) {
                     return DropdownMenuItem<String>(
                       value: option['value'],

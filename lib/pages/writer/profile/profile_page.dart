@@ -3,7 +3,7 @@ import 'package:publishify/utils/theme.dart';
 import 'package:publishify/utils/dummy_data.dart';
 import 'package:publishify/models/writer/user_profile.dart';
 import 'package:publishify/widgets/profile/profile_widgets.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/services/writer/profile_service.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
 import 'package:publishify/models/writer/naskah_models.dart';
@@ -91,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           // Get nama tampilan from profile
           if (profileData.profilPengguna != null) {
-            _userName = profileData.profilPengguna!.namaTampilan;
+            _userName = profileData.profilPengguna!.namaTampilan ?? '';
             _userBio = profileData.profilPengguna!.bio ?? 'Belum dilengkapi';
             _userAvatar = profileData.profilPengguna!.urlAvatar ?? '';
           } else {
@@ -577,7 +577,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          if (naskah.jumlahKata != null)
+                          if (naskah.jumlahKata > 0)
                             Text(
                               '${naskah.jumlahKata} kata',
                               style: AppTheme.bodySmall.copyWith(

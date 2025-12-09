@@ -219,7 +219,7 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    naskah.urlSampul,
+                    naskah.urlSampul ?? '',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
@@ -250,10 +250,10 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
                       ),
                     ),
                     
-                    if (naskah.subJudul.isNotEmpty) ...[
+                    if (naskah.subJudul?.isNotEmpty ?? false) ...[
                       const SizedBox(height: 4),
                       Text(
-                        naskah.subJudul,
+                        naskah.subJudul ?? '',
                         style: AppTheme.bodyMedium.copyWith(
                           color: AppTheme.white.withValues(alpha: 0.8),
                           fontStyle: FontStyle.italic,
@@ -769,6 +769,8 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
           'current_editor_id', // TODO: Ambil dari auth
         );
 
+        if (!mounted) return;
+
         if (response.sukses) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(response.pesan)),
@@ -783,6 +785,7 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
           );
         }
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Terjadi kesalahan: ${e.toString()}'),

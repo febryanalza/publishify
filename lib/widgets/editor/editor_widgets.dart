@@ -92,7 +92,7 @@ class ReviewAssignmentCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      review.penulis,
+                      "${review.penulis}",
                       style: AppTheme.bodyMedium.copyWith(
                         color: AppTheme.greyMedium,
                       ),

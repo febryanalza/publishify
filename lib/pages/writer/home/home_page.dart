@@ -5,7 +5,7 @@ import 'package:publishify/widgets/cards/status_card.dart';
 import 'package:publishify/widgets/cards/action_button.dart';
 import 'package:publishify/widgets/cards/book_card.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
-import 'package:publishify/services/writer/auth_service.dart';
+import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/utils/routes.dart';
 
 class HomePage extends StatefulWidget {
