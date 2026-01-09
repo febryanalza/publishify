@@ -297,6 +297,103 @@ class NaskahService {
     }
   }
 
+  /// Update manuscript (naskah)
+  /// PUT /api/naskah/:id
+  static Future<CreateNaskahResponse> perbaruiNaskah({
+    required String id,
+    String? judul,
+    String? subJudul,
+    String? sinopsis,
+    String? idKategori,
+    String? idGenre,
+    String? bahasaTulis,
+    int? jumlahHalaman,
+    int? jumlahKata,
+    String? urlSampul,
+    String? urlFile,
+    bool? publik,
+  }) async {
+    try {
+      // Get access token from cache
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return CreateNaskahResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$id');
+
+      // Build request body - only include fields that are provided
+      final Map<String, dynamic> body = {};
+
+      if (judul != null && judul.isNotEmpty) {
+        body['judul'] = judul;
+      }
+
+      if (subJudul != null) {
+        body['subJudul'] = subJudul;
+      }
+
+      if (sinopsis != null && sinopsis.isNotEmpty) {
+        body['sinopsis'] = sinopsis;
+      }
+
+      if (idKategori != null && idKategori.isNotEmpty) {
+        body['idKategori'] = idKategori;
+      }
+
+      if (idGenre != null && idGenre.isNotEmpty) {
+        body['idGenre'] = idGenre;
+      }
+
+      if (bahasaTulis != null && bahasaTulis.isNotEmpty) {
+        body['bahasaTulis'] = bahasaTulis;
+      }
+
+      if (jumlahHalaman != null) {
+        body['jumlahHalaman'] = jumlahHalaman;
+      }
+
+      if (jumlahKata != null) {
+        body['jumlahKata'] = jumlahKata;
+      }
+
+      if (urlSampul != null) {
+        body['urlSampul'] = urlSampul;
+      }
+
+      if (urlFile != null) {
+        body['urlFile'] = urlFile;
+      }
+
+      if (publik != null) {
+        body['publik'] = publik;
+      }
+
+      // Make API request
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return CreateNaskahResponse.fromJson(responseData);
+    } catch (e) {
+      // Return error response
+      return CreateNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
   /// Get all manuscripts with full options (for list page)
   /// GET /api/naskah/penulis/saya
   static Future<NaskahListResponse> getAllNaskah({
@@ -361,6 +458,46 @@ class NaskahService {
     } catch (e) {
       // Return error response
       return NaskahListResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Ajukan naskah untuk direview oleh editor
+  /// PUT /api/naskah/:id/ajukan
+  /// Hanya bisa diajukan jika status draft atau perlu_revisi
+  static Future<CreateNaskahResponse> ajukanNaskah(String id, {String? catatan}) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return CreateNaskahResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$id/ajukan');
+      
+      final body = <String, dynamic>{};
+      if (catatan != null && catatan.isNotEmpty) {
+        body['catatan'] = catatan;
+      }
+
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return CreateNaskahResponse.fromJson(responseData);
+    } catch (e) {
+      return CreateNaskahResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
       );

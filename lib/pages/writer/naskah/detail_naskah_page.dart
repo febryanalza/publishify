@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/models/writer/naskah_models.dart';
+import 'package:publishify/pages/writer/naskah/edit_naskah_page.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/widgets/network_image_widget.dart';
@@ -176,6 +177,12 @@ class _DetailNaskahPageState extends State<DetailNaskahPage> {
           // Header dengan cover dan info dasar
           _buildHeader(),
           const SizedBox(height: 24),
+          
+          // Tombol Ajukan Review (hanya untuk draft atau perlu_revisi)
+          if (_canAjukan()) ...[
+            _buildAjukanButton(),
+            const SizedBox(height: 24),
+          ],
 
           // Informasi detail
           _buildDetailInfo(),
@@ -203,6 +210,208 @@ class _DetailNaskahPageState extends State<DetailNaskahPage> {
         ],
       ),
     );
+  }
+  
+  /// Cek apakah naskah bisa diajukan
+  bool _canAjukan() {
+    if (naskah == null) return false;
+    final status = naskah!.status.toLowerCase();
+    return status == 'draft' || status == 'perlu_revisi';
+  }
+  
+  /// Tombol untuk mengajukan naskah ke editor
+  Widget _buildAjukanButton() {
+    return Card(
+      elevation: 2,
+      color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.send_outlined,
+                  color: AppTheme.primaryGreen,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ajukan untuk Review',
+                        style: AppTheme.headingSmall.copyWith(
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Kirim naskah Anda ke editor untuk direview',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: AppTheme.greyText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _editNaskah,
+                    icon: const Icon(Icons.edit, color: AppTheme.googleBlue),
+                    label: const Text(
+                      'Edit Data',
+                      style: TextStyle(
+                        color: AppTheme.googleBlue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppTheme.googleBlue),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _ajukanNaskah,
+                    icon: const Icon(Icons.send, color: AppTheme.white),
+                    label: const Text(
+                      'Ajukan',
+                      style: TextStyle(
+                        color: AppTheme.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Method untuk navigasi ke halaman edit naskah
+  Future<void> _editNaskah() async {
+    if (naskah == null) return;
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditNaskahPage(naskah: naskah!),
+      ),
+    );
+
+    // Jika edit berhasil, reload data
+    if (result == true) {
+      _loadDetailNaskah();
+    }
+  }
+
+  /// Method untuk mengajukan naskah
+  Future<void> _ajukanNaskah() async {
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ajukan Naskah'),
+        content: const Text(
+          'Apakah Anda yakin ingin mengajukan naskah ini untuk direview oleh editor?\n\n'
+          'Setelah diajukan, naskah akan masuk ke antrian review.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+            ),
+            child: const Text('Ajukan', style: TextStyle(color: AppTheme.white)),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    if (!mounted) return;
+    
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+      ),
+    );
+    
+    try {
+      final response = await NaskahService.ajukanNaskah(widget.naskahId);
+      
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+      
+      if (response.sukses) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Naskah berhasil diajukan untuk review'),
+              backgroundColor: AppTheme.primaryGreen,
+            ),
+          );
+          // Reload detail to refresh status
+          _loadDetailNaskah();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildHeader() {

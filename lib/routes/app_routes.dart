@@ -5,6 +5,7 @@ import 'package:publishify/pages/editor/editor_main_page.dart';
 import 'package:publishify/pages/editor/review/review_collection_page.dart';
 import 'package:publishify/pages/editor/review/review_naskah_page.dart';
 import 'package:publishify/pages/editor/review/detail_review_naskah_page.dart';
+import 'package:publishify/pages/editor/review/editor_review_detail_page.dart';
 import 'package:publishify/pages/editor/statistics/editor_statistics_page.dart';
 import 'package:publishify/pages/editor/notifications/editor_notifications_page.dart';
 import 'package:publishify/pages/editor/profile/editor_profile_page.dart';
@@ -14,6 +15,8 @@ import 'package:publishify/pages/editor/feedback/editor_feedback_page.dart';
 
 // Percetakan pages imports
 import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
+import 'package:publishify/pages/percetakan/orders/percetakan_orders_page.dart';
+import 'package:publishify/pages/percetakan/orders/percetakan_order_detail_page.dart';
 
 // Auth pages imports
 import 'package:publishify/pages/auth/splash_screen.dart';
@@ -27,13 +30,44 @@ import 'package:publishify/pages/writer/home/home_page.dart';
 import 'package:publishify/pages/writer/upload/upload_book_page.dart';
 import 'package:publishify/pages/writer/review/review_page.dart';
 import 'package:publishify/pages/writer/print/print_page.dart';
-import 'package:publishify/pages/writer/percetakan/pilih_percetakan_page.dart';
+import 'package:publishify/pages/writer/percetakan/percetakan_penulis_page.dart';
 import 'package:publishify/pages/writer/naskah/naskah_list_page.dart';
 import 'package:publishify/pages/writer/naskah/detail_naskah_page.dart';
 
 /// Route Configuration untuk Role-Based Navigation
 /// Mengatur routing berdasarkan role pengguna
 class AppRoutes {
+  // Route constants
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String success = '/success';
+  static const String home = '/home';
+  static const String statistics = '/statistics';
+  static const String notifications = '/notifications';
+  static const String profile = '/profile';
+  static const String uploadBook = '/upload-book';
+  static const String review = '/review';
+  static const String print = '/print';
+  static const String pilihPercetakan = '/pilih-percetakan';
+  static const String naskahList = '/naskah-list';
+  static const String detailNaskah = '/detail-naskah';
+  
+  // Dashboard routes untuk setiap role
+  static const String dashboardPenulis = '/dashboard/penulis';
+  static const String dashboardEditor = '/dashboard/editor';
+  static const String dashboardPercetakan = '/dashboard/percetakan';
+  static const String dashboardAdmin = '/dashboard/admin';
+
+  // Navigate to detail naskah with parameter
+  static void navigateToDetailNaskah(BuildContext context, String naskahId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailNaskahPage(naskahId: naskahId),
+      ),
+    );
+  }
   
   /// Generate routes berdasarkan route settings
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -167,13 +201,51 @@ class AppRoutes {
           settings: settings,
         );
 
+      case '/editor/review/detail':
+        final reviewId = settings.arguments as String?;
+        if (reviewId == null) {
+          return MaterialPageRoute(
+            builder: (_) => _buildPlaceholderPage(
+              'Error',
+              'ID review tidak ditemukan',
+            ),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => EditorReviewDetailPage(reviewId: reviewId),
+          settings: settings,
+        );
+
       
       // ====================================
       // PERCETAKAN SPECIFIC ROUTES
       // ====================================
       case '/percetakan/orders':
         return MaterialPageRoute(
-          builder: (_) => PercetakanOrderListPage(),
+          builder: (_) => const PercetakanOrdersPage(),
+          settings: settings,
+        );
+
+      case '/percetakan/pesanan':
+        return MaterialPageRoute(
+          builder: (_) => const PercetakanOrdersPage(),
+          settings: settings,
+        );
+
+      case '/percetakan/pesanan/detail':
+        final idPesanan = settings.arguments as String?;
+        if (idPesanan == null) {
+          return MaterialPageRoute(
+            builder: (_) => _buildPlaceholderPage(
+              'Error',
+              'ID pesanan tidak ditemukan',
+            ),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => PercetakanOrderDetailPage(idPesanan: idPesanan),
           settings: settings,
         );
 
@@ -248,7 +320,7 @@ class AppRoutes {
 
       case '/pilih-percetakan':
         return MaterialPageRoute(
-          builder: (_) => const PilihPercetakanPage(),
+          builder: (_) => const PercetakanPenulisPage(),
           settings: settings,
         );
 

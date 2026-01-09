@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/editor/review_naskah_models.dart';
-import 'package:publishify/services/editor/review_naskah_service.dart';
+import 'package:publishify/services/editor/unified_review_service.dart';
 import 'package:publishify/pages/editor/review/detail_review_naskah_page.dart';
 
 /// Halaman untuk menampilkan list naskah yang perlu direview
@@ -22,29 +22,32 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
-    _loadStatusCount();
+    _loadAllData(); // Single batch load
   }
 
-  Future<void> _loadData() async {
+  /// Load semua data dalam 1 batch call (optimized)
+  Future<void> _loadAllData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final response = await ReviewNaskahService.getNaskahSubmissions(
+      // Single API call untuk semua data
+      final pageData = await UnifiedReviewService.loadReviewPageData(
         status: _selectedStatus == 'semua' ? null : _selectedStatus,
+        forceRefresh: forceRefresh,
       );
 
-      if (response.sukses && response.data != null) {
+      if (pageData.hasError) {
         setState(() {
-          _naskahList = response.data!;
+          _errorMessage = pageData.error;
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = response.pesan;
+          _naskahList = pageData.naskahList;
+          _statusCount = pageData.statusCount;
           _isLoading = false;
         });
       }
@@ -53,17 +56,6 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
         _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _loadStatusCount() async {
-    try {
-      final count = await ReviewNaskahService.getStatusCount();
-      setState(() {
-        _statusCount = count;
-      });
-    } catch (e) {
-      // Ignore error for count
     }
   }
 
@@ -94,7 +86,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
               );
 
               try {
-                final response = await ReviewNaskahService.terimaReview(
+                final response = await UnifiedReviewService.terimaReview(
                   naskah.id,
                   'current_editor_id', // TODO: Ambil dari auth
                 );
@@ -105,7 +97,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(content: Text(response.pesan)),
                   );
-                  _loadData(); // Reload data
+                  _loadAllData(forceRefresh: true); // Reload data
                 } else {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
@@ -144,7 +136,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
         naskah: naskah,
         onTugaskan: (idEditor, alasan) async {
           try {
-            final response = await ReviewNaskahService.tugaskanEditor(
+            final response = await UnifiedReviewService.tugaskanEditor(
               naskah.id,
               idEditor,
               alasan,
@@ -156,7 +148,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
               scaffoldMessenger.showSnackBar(
                 SnackBar(content: Text(response.pesan)),
               );
-              _loadData(); // Reload data
+              _loadAllData(forceRefresh: true); // Reload data
             } else {
               scaffoldMessenger.showSnackBar(
                 SnackBar(
@@ -237,7 +229,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
               ),
               const Spacer(),
               IconButton(
-                onPressed: _loadData,
+                onPressed: () => _loadAllData(forceRefresh: true),
                 icon: const Icon(Icons.refresh, color: AppTheme.white),
               ),
             ],
@@ -278,7 +270,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
                   setState(() {
                     _selectedStatus = filter['key']!;
                   });
-                  _loadData();
+                  _loadAllData();
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -331,7 +323,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
 
   Widget _buildNaskahList() {
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: () => _loadAllData(forceRefresh: true),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _naskahList.length,
@@ -602,7 +594,7 @@ class _ReviewNaskahPageState extends State<ReviewNaskahPage> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _loadData,
+              onPressed: () => _loadAllData(forceRefresh: true),
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
               child: const Text('Coba Lagi'),
             ),
@@ -694,7 +686,7 @@ class _TugaskanEditorDialogState extends State<_TugaskanEditorDialog> {
 
   Future<void> _loadEditors() async {
     try {
-      final response = await ReviewNaskahService.getEditorTersedia();
+      final response = await UnifiedReviewService.getEditorTersedia();
       
       if (!mounted) return;
 

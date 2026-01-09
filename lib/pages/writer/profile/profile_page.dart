@@ -9,7 +9,7 @@ import 'package:publishify/services/writer/naskah_service.dart';
 import 'package:publishify/models/writer/naskah_models.dart';
 import 'package:publishify/pages/writer/profile/edit_profile_page.dart';
 import 'package:publishify/widgets/network_image_widget.dart';
-import 'package:publishify/utils/routes.dart';
+import 'package:publishify/routes/app_routes.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

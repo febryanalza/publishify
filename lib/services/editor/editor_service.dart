@@ -10,7 +10,7 @@ import 'dart:convert';
 import 'package:logger/logger.dart';
 
 final _logger = Logger(
-  printer: PrettyPrinter(methodCount: 0, printTime: true),
+  printer: PrettyPrinter(methodCount: 0),
 );
 
 /// Editor Service - Business Logic Layer
@@ -50,13 +50,13 @@ class EditorService {
         return response.data!.map((review) => ReviewAssignment(
           id: review.id,
           judulNaskah: review.naskah.judul,
-          penulisNaskah: review.naskah.penulis.profilPengguna?.namaLengkap ?? 
-                        review.naskah.penulis.email,
+          penulisNaskah: review.naskah.penulis?.profilPengguna?.namaLengkap ?? 
+                        review.naskah.penulis?.email ?? 'Tidak diketahui',
           tanggalDitugaskan: review.ditugaskanPada,
           batasWaktu: review.ditugaskanPada.add(const Duration(days: 14)), // Default 14 hari
           status: _convertStatus(review.status),
           progress: _calculateProgress(review).toDouble(),
-          kategori: review.naskah.kategori.nama,
+          kategori: review.naskah.kategori?.nama ?? '',
           jumlahHalaman: review.naskah.jumlahHalaman ?? 0,
         )).toList();
       }

@@ -12,12 +12,16 @@ export 'editor_api_service.dart';
 // Business Logic Layer - Main service
 export 'editor_service.dart';
 
+// Unified Review Service - RECOMMENDED (consolidated with caching)
+export 'unified_review_service.dart';
+
 // Review Workflow Layer - Review lifecycle management
 export 'editor_review_service.dart';
 
 // Statistics Layer - Dashboard metrics
 export 'statistik_service.dart';
 
+// Legacy Services (deprecated - use UnifiedReviewService instead)
 // Naskah Submission Layer - Naskah submissions review
 export 'review_naskah_service.dart';
 

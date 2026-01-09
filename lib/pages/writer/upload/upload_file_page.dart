@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/writer/book_submission.dart';
 import 'package:publishify/services/writer/upload_service.dart';
@@ -83,6 +82,27 @@ class _UploadFilePageState extends State<UploadFilePage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
   }
 
+  /// Ekstrak path relatif dari URL upload
+  /// Input: /uploads/naskah/filename.docx atau http://xxx/uploads/naskah/filename.docx
+  /// Output: /naskah/filename.docx
+  String _extractRelativePath(String url) {
+    // Jika sudah dalam format yang diinginkan (/naskah/...)
+    if (url.startsWith('/naskah/') || url.startsWith('/sampul/')) {
+      return url;
+    }
+    
+    // Ekstrak path setelah /uploads
+    final uploadsIndex = url.indexOf('/uploads/');
+    if (uploadsIndex != -1) {
+      // Ambil bagian setelah /uploads
+      final afterUploads = url.substring(uploadsIndex + '/uploads'.length);
+      return afterUploads; // Returns: /naskah/filename.docx
+    }
+    
+    // Jika format tidak dikenali, kembalikan apa adanya
+    return url;
+  }
+
   void _handleSubmit() async {
     if (_selectedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,11 +140,11 @@ class _UploadFilePageState extends State<UploadFilePage> {
       }
 
       // Step 2: Create naskah with uploaded file URL
-      // Build full URL from relative path (backend returns /uploads/...)
-      final baseUrl = dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
-      final fileUrl = uploadResponse.data!.url.startsWith('http')
-          ? uploadResponse.data!.url
-          : '$baseUrl${uploadResponse.data!.url}';
+      // Ekstrak path relatif dari URL upload
+      // Backend returns: /uploads/naskah/filename.docx
+      // We want to store: /naskah/filename.docx
+      final uploadUrl = uploadResponse.data!.url;
+      final fileUrl = _extractRelativePath(uploadUrl);
       
       final createResponse = await NaskahService.createNaskah(
         judul: widget.submission.title,
@@ -133,7 +153,7 @@ class _UploadFilePageState extends State<UploadFilePage> {
         idKategori: widget.submission.category,
         idGenre: widget.submission.genre,
         isbn: widget.submission.isbn,
-        urlFile: fileUrl,  // Full URL: http://localhost:4000/uploads/naskah/file.docx
+        urlFile: fileUrl,  // Relative path: /naskah/filename.docx
         publik: false,
       );
 

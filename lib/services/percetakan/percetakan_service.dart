@@ -122,9 +122,11 @@ class PercetakanService {
     }
   }
 
-  /// Terima pesanan
-  static Future<PesananDetailResponse> terimaPesanan(
+  /// Konfirmasi pesanan (terima atau tolak)
+  static Future<PesananDetailResponse> konfirmasiPesanan(
     String idPesanan, {
+    required bool diterima,
+    double? hargaTotal,
     DateTime? estimasiSelesai,
     String? catatan,
   }) async {
@@ -132,7 +134,13 @@ class PercetakanService {
       final token = await AuthService.getAccessToken();
       if (token == null) throw Exception('Token tidak ditemukan');
 
-      final Map<String, dynamic> requestData = {};
+      final Map<String, dynamic> requestData = {
+        'diterima': diterima,
+      };
+
+      if (hargaTotal != null) {
+        requestData['hargaTotal'] = hargaTotal;
+      }
 
       if (estimasiSelesai != null) {
         requestData['estimasiSelesai'] = estimasiSelesai.toIso8601String();
@@ -142,8 +150,8 @@ class PercetakanService {
         requestData['catatan'] = catatan;
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/$idPesanan/terima'),
+      final response = await http.put(
+        Uri.parse('$baseUrl/$idPesanan/konfirmasi'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

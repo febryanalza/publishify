@@ -8,7 +8,7 @@ import 'package:publishify/services/editor/editor_api_service.dart';
 import 'package:logger/logger.dart';
 
 final _logger = Logger(
-  printer: PrettyPrinter(methodCount: 0, printTime: true),
+  printer: PrettyPrinter(methodCount: 0),
 );
 
 /// Service untuk mengelola Review Collection

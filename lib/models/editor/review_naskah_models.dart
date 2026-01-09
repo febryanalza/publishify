@@ -148,23 +148,23 @@ class NaskahSubmission {
   factory NaskahSubmission.fromReviewNaskah(ReviewNaskah review) {
     final naskahData = review.naskah;
     final penulisData = naskahData.penulis;
-    final namaLengkap = penulisData.profilPengguna?.namaLengkap ?? penulisData.email;
+    final namaLengkap = penulisData?.profilPengguna?.namaLengkap ?? penulisData?.email ?? 'Tidak diketahui';
     
     return NaskahSubmission(
       id: review.idNaskah,
       judul: naskahData.judul,
       subJudul: naskahData.subJudul,
-      sinopsis: naskahData.sinopsis,
+      sinopsis: naskahData.sinopsis ?? '',
       penulis: namaLengkap,
       namaPenulis: namaLengkap,
-      idPenulis: penulisData.id,
-      emailPenulis: penulisData.email,
-      kategori: naskahData.kategori.nama,
-      genre: naskahData.genre.nama,
+      idPenulis: penulisData?.id ?? '',
+      emailPenulis: penulisData?.email ?? '',
+      kategori: naskahData.kategori?.nama ?? '',
+      genre: naskahData.genre?.nama ?? '',
       status: naskahData.status.name,
       jumlahHalaman: naskahData.jumlahHalaman ?? 0,
       jumlahKata: naskahData.jumlahKata ?? 0,
-      bahasaTulis: 'Indonesia', // Default, NaskahInfo tidak punya field ini
+      bahasaTulis: 'Indonesia',
       tanggalSubmit: review.ditugaskanPada,
       urlSampul: naskahData.urlSampul,
       urlFile: naskahData.urlFile,

@@ -15,6 +15,9 @@ class ImageHelper {
   /// - Input: `/uploads/sampul/2025-11-04_lukisan_a6011cc09612df7e.jpg`
   /// - Output: `http://10.0.2.2:4000/uploads/sampul/2025-11-04_lukisan_a6011cc09612df7e.jpg`
   /// 
+  /// - Input: `/naskah/filename.docx` (format baru tanpa /uploads)
+  /// - Output: `http://10.0.2.2:4000/uploads/naskah/filename.docx`
+  /// 
   /// Jika input sudah full URL (dimulai dengan http/https), langsung return
   static String getFullImageUrl(String? relativePath) {
     if (relativePath == null || relativePath.isEmpty) {
@@ -27,7 +30,14 @@ class ImageHelper {
     }
 
     // Tambahkan leading slash jika tidak ada
-    final path = relativePath.startsWith('/') ? relativePath : '/$relativePath';
+    String path = relativePath.startsWith('/') ? relativePath : '/$relativePath';
+    
+    // Jika path tidak diawali /uploads, tambahkan prefix /uploads
+    // Format baru: /naskah/xxx.pdf atau /sampul/xxx.jpg
+    // Format lama: /uploads/naskah/xxx.pdf atau /uploads/sampul/xxx.jpg
+    if (!path.startsWith('/uploads/')) {
+      path = '/uploads$path';
+    }
     
     // Gabungkan base URL dengan path
     return '$_baseUrl$path';
@@ -40,10 +50,14 @@ class ImageHelper {
     }
 
     // Cek apakah URL atau path valid
+    // Format baru: /naskah/xxx atau /sampul/xxx
+    // Format lama: /uploads/naskah/xxx atau /uploads/sampul/xxx
     return url.isNotEmpty && 
            (url.startsWith('http://') || 
             url.startsWith('https://') || 
-            url.startsWith('/uploads/'));
+            url.startsWith('/uploads/') ||
+            url.startsWith('/naskah/') ||
+            url.startsWith('/sampul/'));
   }
 
   /// Get full URL untuk sampul buku

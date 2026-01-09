@@ -8,7 +8,7 @@ import 'package:publishify/services/editor/editor_api_service.dart';
 import 'package:logger/logger.dart';
 
 final _logger = Logger(
-  printer: PrettyPrinter(methodCount: 0, printTime: true),
+  printer: PrettyPrinter(methodCount: 0),
 );
 
 /// Service untuk mengelola Naskah Submission Review
@@ -51,7 +51,7 @@ class ReviewNaskahService {
       }
 
       return NaskahSubmissionResponse.error(
-        response.pesan ?? 'Gagal memuat data naskah',
+        response.pesan ,
       );
     } catch (e) {
       _logger.e('Error getNaskahSubmissions: $e');
@@ -125,7 +125,7 @@ class ReviewNaskahService {
         return ActionResponse.success('Review berhasil diterima');
       }
 
-      return ActionResponse.error(updateResponse.pesan ?? 'Gagal menerima review');
+      return ActionResponse.error(updateResponse.pesan );
     } catch (e) {
       _logger.e('Error terimaReview: $e');
       return ActionResponse.error('Terjadi kesalahan: ${e.toString()}');
@@ -151,7 +151,7 @@ class ReviewNaskahService {
         return ActionResponse.success('Naskah berhasil ditugaskan ke editor lain');
       }
 
-      return ActionResponse.error(response.pesan ?? 'Gagal menugaskan review');
+      return ActionResponse.error(response.pesan );
     } catch (e) {
       _logger.e('Error tugaskanEditor: $e');
       return ActionResponse.error('Terjadi kesalahan: ${e.toString()}');
@@ -171,7 +171,7 @@ class ReviewNaskahService {
         return ActionResponse.success('Review berhasil dimulai');
       }
 
-      return ActionResponse.error(response.pesan ?? 'Gagal memulai review');
+      return ActionResponse.error(response.pesan);
     } catch (e) {
       _logger.e('Error mulaiReview: $e');
       return ActionResponse.error('Terjadi kesalahan: ${e.toString()}');
@@ -195,7 +195,7 @@ class ReviewNaskahService {
         return ActionResponse.success('Naskah berhasil ditolak');
       }
 
-      return ActionResponse.error(response.pesan ?? 'Gagal menolak naskah');
+      return ActionResponse.error(response.pesan );
     } catch (e) {
       _logger.e('Error tolakNaskah: $e');
       return ActionResponse.error('Terjadi kesalahan: ${e.toString()}');
@@ -219,7 +219,7 @@ class ReviewNaskahService {
         return ActionResponse.success('Naskah berhasil disetujui');
       }
 
-      return ActionResponse.error(response.pesan ?? 'Gagal menyetujui naskah');
+      return ActionResponse.error(response.pesan );
     } catch (e) {
       _logger.e('Error setujuiNaskah: $e');
       return ActionResponse.error('Terjadi kesalahan: ${e.toString()}');
@@ -243,7 +243,7 @@ class ReviewNaskahService {
         return ActionResponse.success('Permintaan revisi berhasil dikirim');
       }
 
-      return ActionResponse.error(response.pesan ?? 'Gagal mengirim permintaan revisi');
+      return ActionResponse.error(response.pesan );
     } catch (e) {
       _logger.e('Error mintaRevisi: $e');
       return ActionResponse.error('Terjadi kesalahan: ${e.toString()}');

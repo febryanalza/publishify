@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/editor/review_naskah_models.dart';
-import 'package:publishify/services/editor/review_naskah_service.dart';
+import 'package:publishify/services/editor/unified_review_service.dart';
 
 /// Halaman detail naskah yang akan direview
 class DetailReviewNaskahPage extends StatefulWidget {
@@ -34,7 +34,7 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
     });
 
     try {
-      final response = await ReviewNaskahService.getDetailNaskah(widget.naskahId);
+      final response = await UnifiedReviewService.getDetailNaskah(widget.naskahId);
       
       if (response.sukses && response.data != null) {
         setState(() {
@@ -764,7 +764,7 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
 
     if (confirmed == true) {
       try {
-        final response = await ReviewNaskahService.terimaReview(
+        final response = await UnifiedReviewService.terimaReview(
           naskah.id,
           'current_editor_id', // TODO: Ambil dari auth
         );

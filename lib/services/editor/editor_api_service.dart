@@ -12,7 +12,7 @@ import 'package:publishify/models/editor/review_models.dart';
 
 /// Logger untuk debugging
 final _logger = Logger(
-  printer: PrettyPrinter(methodCount: 0, printTime: true),
+  printer: PrettyPrinter(methodCount: 0),
 );
 
 /// Base API Response class untuk handling response
@@ -365,6 +365,34 @@ class EditorApiService {
   // =====================================================
   // EDITOR MANAGEMENT
   // =====================================================
+
+  // =====================================================
+  // NASKAH MASUK (untuk editor)
+  // =====================================================
+
+  /// GET /naskah - Ambil naskah dengan status 'diajukan' yang belum direview
+  /// Untuk halaman Naskah Masuk editor
+  static Future<ApiResponse<List<Map<String, dynamic>>>> ambilNaskahMasuk({
+    int halaman = 1,
+    int limit = 20,
+  }) async {
+    return get<List<Map<String, dynamic>>>(
+      '/api/naskah',
+      queryParams: {
+        'status': 'diajukan',
+        'halaman': halaman.toString(),
+        'limit': limit.toString(),
+        'urutkan': 'dibuatPada',
+        'arah': 'desc',
+      },
+      fromJson: (data) {
+        if (data is List) {
+          return data.cast<Map<String, dynamic>>();
+        }
+        return <Map<String, dynamic>>[];
+      },
+    );
+  }
 
   /// GET /pengguna/editor - Ambil daftar editor yang tersedia
   static Future<ApiResponse<List<Map<String, dynamic>>>> ambilDaftarEditor() async {

@@ -6,7 +6,7 @@ import 'package:publishify/widgets/cards/action_button.dart';
 import 'package:publishify/widgets/cards/book_card.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
 import 'package:publishify/services/general/auth_service.dart';
-import 'package:publishify/utils/routes.dart';
+import 'package:publishify/routes/app_routes.dart';
 
 class HomePage extends StatefulWidget {
   final String? userName;
@@ -131,6 +131,8 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+
+                          const SizedBox(height: 10),
                           // Search Bar
                           _buildSearchBar(),
                           
@@ -433,7 +435,7 @@ class _HomePageState extends State<HomePage> {
       // Navigate to review page (changed from revision)
       Navigator.pushNamed(context, '/review');
     } else if (action == 'print') {
-      // Navigate to pilih percetakan page
+      // Navigate to percetakan penulis page
       Navigator.pushNamed(context, '/pilih-percetakan');
     } else if (action == 'list') {
       // Navigate to naskah list page

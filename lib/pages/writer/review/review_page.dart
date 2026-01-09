@@ -23,14 +23,18 @@ class _ReviewPageState extends State<ReviewPage> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
+  /// Load data with cache support
+  Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final response = await ReviewService.getAllReviewsForMyManuscripts();
+      // Gunakan cache kecuali force refresh
+      final response = await ReviewService.getAllReviewsForMyManuscripts(
+        forceRefresh: forceRefresh,
+      );
 
       if (response.sukses && response.data != null) {
         setState(() {
@@ -49,6 +53,13 @@ class _ReviewPageState extends State<ReviewPage> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Refresh data (clear cache and reload)
+  Future<void> _refreshData() async {
+    // Clear cache before refresh
+    await ReviewService.clearCache();
+    await _loadData(forceRefresh: true);
   }
 
   List<ReviewData> get _filteredReviews {
@@ -85,7 +96,7 @@ class _ReviewPageState extends State<ReviewPage> {
                       : _reviews.isEmpty
                           ? _buildEmptyState()
                           : RefreshIndicator(
-                              onRefresh: _loadData,
+                              onRefresh: _refreshData, // Use _refreshData for pull-to-refresh
                               color: AppTheme.primaryGreen,
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.all(20),
@@ -429,14 +440,17 @@ class _ReviewPageState extends State<ReviewPage> {
                     color: _getRekomendasiColor(review.rekomendasi!),
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    ReviewService.getRekomendasiLabel(review.rekomendasi),
-                    style: AppTheme.bodySmall.copyWith(
-                      color: _getRekomendasiColor(review.rekomendasi!),
-                      fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Text(
+                      ReviewService.getRekomendasiLabel(review.rekomendasi),
+                      style: AppTheme.bodySmall.copyWith(
+                        color: _getRekomendasiColor(review.rekomendasi!),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                 ],
                 Icon(
                   Icons.comment_outlined,
@@ -451,10 +465,13 @@ class _ReviewPageState extends State<ReviewPage> {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  _formatDate(review.diperbaruiPada),
-                  style: AppTheme.bodySmall.copyWith(
-                    color: AppTheme.greyMedium,
+                Flexible(
+                  child: Text(
+                    _formatDate(review.diperbaruiPada),
+                    style: AppTheme.bodySmall.copyWith(
+                      color: AppTheme.greyMedium,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

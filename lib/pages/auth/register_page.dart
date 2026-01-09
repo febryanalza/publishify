@@ -26,8 +26,6 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _selectedJenisPeran;
   final List<Map<String, String>> _jenisPeranOptions = [
     {'value': 'penulis', 'label': 'Penulis'},
-    {'value': 'editor', 'label': 'Editor'},
-    {'value': 'percetakan', 'label': 'Percetakan'},
   ];
 
   @override

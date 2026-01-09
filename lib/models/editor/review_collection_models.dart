@@ -141,7 +141,7 @@ class BukuMasukReview {
   /// Create from ReviewNaskah model
   factory BukuMasukReview.fromReviewNaskah(ReviewNaskah review) {
     final penulisData = review.naskah.penulis;
-    final namaLengkap = penulisData.profilPengguna?.namaLengkap ?? penulisData.email;
+    final namaLengkap = penulisData?.profilPengguna?.namaLengkap ?? penulisData?.email ?? 'Tidak diketahui';
     final editorNama = review.editor.profilPengguna?.namaLengkap ?? review.editor.email;
     
     return BukuMasukReview(
@@ -150,17 +150,17 @@ class BukuMasukReview {
       subJudul: review.naskah.subJudul,
       penulis: namaLengkap,
       namaPenulis: namaLengkap,
-      idPenulis: penulisData.id,
-      emailPenulis: penulisData.email,
-      kategori: review.naskah.kategori.nama,
-      genre: review.naskah.genre.nama,
+      idPenulis: penulisData?.id ?? '',
+      emailPenulis: penulisData?.email ?? '',
+      kategori: review.naskah.kategori?.nama ?? '',
+      genre: review.naskah.genre?.nama ?? '',
       status: _mapStatus(review.status),
       jumlahHalaman: review.naskah.jumlahHalaman ?? 0,
       jumlahKata: review.naskah.jumlahKata ?? 0,
       tanggalMasuk: review.ditugaskanPada,
       tanggalSubmit: review.ditugaskanPada,
       urlSampul: review.naskah.urlSampul,
-      sinopsis: review.naskah.sinopsis,
+      sinopsis: review.naskah.sinopsis ?? '',
       editorDitugaskan: review.idEditor,
       editorYangDitugaskan: editorNama,
     );
@@ -448,18 +448,18 @@ class DetailBukuReview {
 
   factory DetailBukuReview.fromReviewNaskah(ReviewNaskah review) {
     final penulisData = review.naskah.penulis;
-    final namaLengkap = penulisData.profilPengguna?.namaLengkap ?? penulisData.email;
+    final namaLengkap = penulisData?.profilPengguna?.namaLengkap ?? penulisData?.email ?? 'Tidak diketahui';
     
     return DetailBukuReview(
       id: review.id,
       judul: review.naskah.judul,
       subJudul: review.naskah.subJudul ?? '',
       penulis: namaLengkap,
-      emailPenulis: penulisData.email,
-      kategori: review.naskah.kategori.nama,
-      genre: review.naskah.genre.nama,
+      emailPenulis: penulisData?.email ?? '',
+      kategori: review.naskah.kategori?.nama ?? '',
+      genre: review.naskah.genre?.nama ?? '',
       status: review.status.name,
-      sinopsis: review.naskah.sinopsis,
+      sinopsis: review.naskah.sinopsis ?? '',
       jumlahHalaman: review.naskah.jumlahHalaman ?? 0,
       jumlahKata: review.naskah.jumlahKata ?? 0,
       tanggalMasuk: review.ditugaskanPada,
@@ -469,8 +469,8 @@ class DetailBukuReview {
       bukuInfo: BukuInfo(
         judul: review.naskah.judul,
         penulis: namaLengkap,
-        kategori: review.naskah.kategori.nama,
-        genre: review.naskah.genre.nama,
+        kategori: review.naskah.kategori?.nama ?? '',
+        genre: review.naskah.genre?.nama ?? '',
       ),
       feedbacks: review.feedback.map((f) => ReviewFeedback.fromFeedbackReview(f)).toList(),
     );

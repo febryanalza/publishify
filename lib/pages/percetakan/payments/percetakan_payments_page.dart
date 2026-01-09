@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
+import 'package:publishify/models/percetakan/pembayaran_models.dart';
+import 'package:publishify/services/percetakan/pembayaran_service.dart';
 
 class PercetakanPaymentsPage extends StatefulWidget {
   const PercetakanPaymentsPage({super.key});
@@ -10,9 +12,15 @@ class PercetakanPaymentsPage extends StatefulWidget {
 
 class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
   bool _isLoading = true;
-  List<DummyPayment> _payments = [];
+  List<Pembayaran> _payments = [];
   String _selectedFilter = 'semua';
   String? _error;
+
+  // Statistik pembayaran
+  int _totalPembayaran = 0;
+  int _pendingCount = 0;
+  int _completedCount = 0;
+  String _totalAmount = '0';
 
   @override
   void initState() {
@@ -27,14 +35,37 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
     });
 
     try {
-      // Gunakan data dummy
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      setState(() {
-        _payments = _getDummyPayments();
-        _isLoading = false;
-      });
+      // Map filter ke status backend
+      String? statusFilter;
+      if (_selectedFilter == 'pending') {
+        statusFilter = 'tertunda';
+      } else if (_selectedFilter == 'completed') {
+        statusFilter = 'berhasil';
+      }
+
+      // Ambil data pembayaran dari server
+      final response = await PembayaranService.ambilDaftarPembayaran(
+        halaman: 1,
+        limit: 50,
+        status: statusFilter,
+      );
+
+      if (!mounted) return;
+
+      if (response.sukses && response.data != null) {
+        setState(() {
+          _payments = response.data!;
+          _calculateStats();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = response.pesan ?? 'Gagal memuat data pembayaran';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -42,72 +73,29 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
     }
   }
 
-  List<DummyPayment> _getDummyPayments() {
-    final now = DateTime.now();
-    return [
-      DummyPayment(
-        id: '1',
-        nomorPesanan: 'PO-2024-001',
-        judulNaskah: 'Petualangan Anak Rimba',
-        namaPenulis: 'Ahmad Santoso',
-        jumlah: 850000,
-        metodePembayaran: 'Transfer Bank',
-        status: 'pending',
-        tanggalPesan: now.subtract(const Duration(hours: 2)),
-        tanggalBayar: null,
-      ),
-      DummyPayment(
-        id: '2',
-        nomorPesanan: 'PO-2024-002',
-        judulNaskah: 'Panduan Bisnis Online',
-        namaPenulis: 'Siti Nurhaliza',
-        jumlah: 1200000,
-        metodePembayaran: 'E-Wallet',
-        status: 'completed',
-        tanggalPesan: now.subtract(const Duration(days: 2)),
-        tanggalBayar: now.subtract(const Duration(days: 2, hours: 1)),
-      ),
-      DummyPayment(
-        id: '3',
-        nomorPesanan: 'PO-2024-003',
-        judulNaskah: 'Kumpulan Puisi Remaja',
-        namaPenulis: 'Budi Prasetyo',
-        jumlah: 950000,
-        metodePembayaran: 'Transfer Bank',
-        status: 'completed',
-        tanggalPesan: now.subtract(const Duration(days: 5)),
-        tanggalBayar: now.subtract(const Duration(days: 4)),
-      ),
-      DummyPayment(
-        id: '4',
-        nomorPesanan: 'PO-2024-004',
-        judulNaskah: 'Ensiklopedia Sains Anak',
-        namaPenulis: 'Dewi Lestari',
-        jumlah: 1500000,
-        metodePembayaran: 'Kredit/Tempo',
-        status: 'pending',
-        tanggalPesan: now.subtract(const Duration(hours: 6)),
-        tanggalBayar: null,
-      ),
-      DummyPayment(
-        id: '5',
-        nomorPesanan: 'PO-2024-005',
-        judulNaskah: 'Resep Masakan Nusantara',
-        namaPenulis: 'Rina Kusuma',
-        jumlah: 750000,
-        metodePembayaran: 'Transfer Bank',
-        status: 'completed',
-        tanggalPesan: now.subtract(const Duration(days: 3)),
-        tanggalBayar: now.subtract(const Duration(days: 2, hours: 12)),
-      ),
-    ];
+  void _calculateStats() {
+    _totalPembayaran = _payments.length;
+    _pendingCount = _payments.where((p) => 
+        p.status == 'tertunda' || p.status == 'diproses').length;
+    _completedCount = _payments.where((p) => p.status == 'berhasil').length;
+    
+    double total = 0;
+    for (final payment in _payments) {
+      total += double.tryParse(payment.jumlah) ?? 0;
+    }
+    _totalAmount = total.toStringAsFixed(0);
   }
 
-  List<DummyPayment> get filteredPayments {
+  List<Pembayaran> get filteredPayments {
     if (_selectedFilter == 'semua') {
       return _payments;
+    } else if (_selectedFilter == 'pending') {
+      return _payments.where((p) => 
+          p.status == 'tertunda' || p.status == 'diproses').toList();
+    } else if (_selectedFilter == 'completed') {
+      return _payments.where((p) => p.status == 'berhasil').toList();
     }
-    return _payments.where((p) => p.status == _selectedFilter).toList();
+    return _payments;
   }
 
   @override
@@ -179,13 +167,6 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
   }
 
   Widget _buildSummaryCards() {
-    final totalAmount = _payments.fold<double>(
-      0,
-      (sum, payment) => sum + payment.jumlah,
-    );
-    final completedPayments = _payments.where((p) => p.status == 'completed').length;
-    final pendingPayments = _payments.where((p) => p.status == 'pending').length;
-
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
@@ -194,7 +175,16 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
           Expanded(
             child: _buildSummaryCard(
               'Total',
-              _formatCurrency(totalAmount),
+              _totalPembayaran.toString(),
+              Icons.payment,
+              AppTheme.primaryGreen,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildSummaryCard(
+              'Pendapatan',
+              PembayaranService.formatHarga(_totalAmount),
               Icons.account_balance_wallet,
               Colors.blue,
             ),
@@ -203,7 +193,7 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
           Expanded(
             child: _buildSummaryCard(
               'Lunas',
-              completedPayments.toString(),
+              _completedCount.toString(),
               Icons.check_circle,
               Colors.green,
             ),
@@ -212,7 +202,7 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
           Expanded(
             child: _buildSummaryCard(
               'Pending',
-              pendingPayments.toString(),
+              _pendingCount.toString(),
               Icons.pending,
               Colors.orange,
             ),
@@ -313,9 +303,27 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
     );
   }
 
-  Widget _buildPaymentCard(DummyPayment payment) {
-    final statusColor = payment.status == 'completed' ? Colors.green : Colors.orange;
-    final statusLabel = payment.status == 'completed' ? 'Lunas' : 'Pending';
+  Widget _buildPaymentCard(Pembayaran payment) {
+    final labelStatus = PembayaranService.ambilLabelStatus();
+    final warnaStatus = PembayaranService.ambilWarnaStatus();
+    final labelMetode = PembayaranService.ambilLabelMetode();
+    
+    final colorMap = {
+      'orange': Colors.orange,
+      'blue': Colors.blue,
+      'green': Colors.green,
+      'red': Colors.red,
+      'purple': Colors.purple,
+    };
+
+    final statusColor = colorMap[warnaStatus[payment.status]] ?? Colors.grey;
+    final statusLabel = labelStatus[payment.status] ?? payment.status;
+
+    // Dapatkan info pesanan dan pengguna
+    final nomorPesanan = payment.pesanan?.nomorPesanan ?? '-';
+    final judulNaskah = payment.pesanan?.naskah?.judul ?? 'Tidak ada judul';
+    final namaPenulis = payment.pengguna?.namaLengkap ?? payment.pengguna?.email ?? 'Unknown';
+    final metodePembayaran = labelMetode[payment.metodePembayaran] ?? payment.metodePembayaran;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -346,7 +354,7 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          payment.nomorPesanan,
+                          nomorPesanan,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -355,7 +363,7 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          payment.judulNaskah,
+                          judulNaskah,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -365,7 +373,7 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          payment.namaPenulis,
+                          namaPenulis,
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey[600],
@@ -402,13 +410,13 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
                   Expanded(
                     child: _buildPaymentInfo(
                       Icons.payment,
-                      payment.metodePembayaran,
+                      metodePembayaran,
                     ),
                   ),
                   Expanded(
                     child: _buildPaymentInfo(
                       Icons.calendar_today,
-                      _formatDate(payment.tanggalPesan),
+                      PembayaranService.formatTanggal(payment.dibuatPada),
                     ),
                   ),
                 ],
@@ -418,14 +426,14 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _formatCurrency(payment.jumlah),
+                    PembayaranService.formatHarga(payment.jumlah),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
                     ),
                   ),
-                  if (payment.status == 'pending')
+                  if (payment.status == 'tertunda' || payment.status == 'diproses')
                     ElevatedButton.icon(
                       onPressed: () => _showConfirmPaymentDialog(payment),
                       icon: const Icon(Icons.check, size: 16),
@@ -515,7 +523,10 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
   //   );
   // }
 
-  void _showConfirmPaymentDialog(DummyPayment payment) {
+  void _showConfirmPaymentDialog(Pembayaran payment) {
+    final nomorPesanan = payment.pesanan?.nomorPesanan ?? '-';
+    final judulNaskah = payment.pesanan?.naskah?.judul ?? 'Tidak ada judul';
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -524,11 +535,11 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pesanan: ${payment.nomorPesanan}'),
-            Text('Naskah: ${payment.judulNaskah}'),
+            Text('Pesanan: $nomorPesanan'),
+            Text('Naskah: $judulNaskah'),
             const SizedBox(height: 8),
             Text(
-              'Jumlah: ${_formatCurrency(payment.jumlah)}',
+              'Jumlah: ${PembayaranService.formatHarga(payment.jumlah)}',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -559,33 +570,53 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
     );
   }
 
-  void _confirmPayment(DummyPayment payment) {
-    setState(() {
-      final index = _payments.indexWhere((p) => p.id == payment.id);
-      if (index != -1) {
-        _payments[index] = DummyPayment(
-          id: payment.id,
-          nomorPesanan: payment.nomorPesanan,
-          judulNaskah: payment.judulNaskah,
-          namaPenulis: payment.namaPenulis,
-          jumlah: payment.jumlah,
-          metodePembayaran: payment.metodePembayaran,
-          status: 'completed',
-          tanggalPesan: payment.tanggalPesan,
-          tanggalBayar: DateTime.now(),
+  Future<void> _confirmPayment(Pembayaran payment) async {
+    try {
+      final response = await PembayaranService.konfirmasiPembayaran(
+        payment.id,
+        diterima: true,
+      );
+
+      if (!mounted) return;
+
+      if (response.sukses) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pembayaran berhasil dikonfirmasi'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Reload data
+        await _loadPayments();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.pesan ?? 'Gagal mengkonfirmasi pembayaran'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pembayaran berhasil dikonfirmasi'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _showPaymentDetail(DummyPayment payment) {
+  void _showPaymentDetail(Pembayaran payment) {
+    final labelStatus = PembayaranService.ambilLabelStatus();
+    final labelMetode = PembayaranService.ambilLabelMetode();
+    
+    final nomorPesanan = payment.pesanan?.nomorPesanan ?? '-';
+    final judulNaskah = payment.pesanan?.naskah?.judul ?? 'Tidak ada judul';
+    final namaPenulis = payment.pengguna?.namaLengkap ?? payment.pengguna?.email ?? 'Unknown';
+    final metodePembayaran = labelMetode[payment.metodePembayaran] ?? payment.metodePembayaran;
+    final statusLabel = labelStatus[payment.status] ?? payment.status;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -622,18 +653,21 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              _buildDetailRow('Nomor Pesanan', payment.nomorPesanan),
-              _buildDetailRow('Judul Naskah', payment.judulNaskah),
-              _buildDetailRow('Penulis', payment.namaPenulis),
-              _buildDetailRow('Metode Pembayaran', payment.metodePembayaran),
-              _buildDetailRow('Status', payment.status == 'completed' ? 'Lunas' : 'Pending'),
-              _buildDetailRow('Tanggal Pesan', _formatDate(payment.tanggalPesan)),
-              if (payment.tanggalBayar != null)
-                _buildDetailRow('Tanggal Bayar', _formatDate(payment.tanggalBayar!)),
+              _buildDetailRow('Nomor Transaksi', payment.nomorTransaksi),
+              _buildDetailRow('Nomor Pesanan', nomorPesanan),
+              _buildDetailRow('Judul Naskah', judulNaskah),
+              _buildDetailRow('Penulis', namaPenulis),
+              _buildDetailRow('Metode Pembayaran', metodePembayaran),
+              _buildDetailRow('Status', statusLabel),
+              _buildDetailRow('Tanggal Dibuat', PembayaranService.formatTanggal(payment.dibuatPada)),
+              if (payment.tanggalPembayaran != null)
+                _buildDetailRow('Tanggal Bayar', PembayaranService.formatTanggal(payment.tanggalPembayaran!)),
+              if (payment.catatanPembayaran != null && payment.catatanPembayaran!.isNotEmpty)
+                _buildDetailRow('Catatan', payment.catatanPembayaran!),
               const Divider(height: 32),
               _buildDetailRow(
                 'Total',
-                _formatCurrency(payment.jumlah),
+                PembayaranService.formatHarga(payment.jumlah),
                 valueStyle: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -677,44 +711,4 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
       ),
     );
   }
-
-  String _formatCurrency(double amount) {
-    return 'Rp ${amount.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    )}';
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
-}
-
-// Dummy Payment Model
-class DummyPayment {
-  final String id;
-  final String nomorPesanan;
-  final String judulNaskah;
-  final String namaPenulis;
-  final double jumlah;
-  final String metodePembayaran;
-  final String status;
-  final DateTime tanggalPesan;
-  final DateTime? tanggalBayar;
-
-  DummyPayment({
-    required this.id,
-    required this.nomorPesanan,
-    required this.judulNaskah,
-    required this.namaPenulis,
-    required this.jumlah,
-    required this.metodePembayaran,
-    required this.status,
-    required this.tanggalPesan,
-    this.tanggalBayar,
-  });
 }

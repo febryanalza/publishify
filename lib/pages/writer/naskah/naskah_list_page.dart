@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/writer/naskah_models.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
-import 'package:publishify/utils/routes.dart';
+import 'package:publishify/routes/app_routes.dart';
 
 class NaskahListPage extends StatefulWidget {
   const NaskahListPage({super.key});
@@ -438,6 +438,8 @@ class _NaskahListPageState extends State<NaskahListPage> {
   }
 
   Widget _buildNaskahCard(NaskahData naskah) {
+    final canAjukan = _canAjukan(naskah.status);
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -555,10 +557,129 @@ class _NaskahListPageState extends State<NaskahListPage> {
                   ),
                 ],
               ),
+              
+              // Tombol Ajukan (jika draft atau perlu_revisi)
+              if (canAjukan) ...[
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _ajukanNaskah(naskah),
+                    icon: const Icon(Icons.send, size: 18, color: AppTheme.white),
+                    label: const Text(
+                      'Ajukan untuk Review',
+                      style: TextStyle(
+                        color: AppTheme.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+  
+  /// Cek apakah naskah bisa diajukan
+  bool _canAjukan(String status) {
+    final statusLower = status.toLowerCase();
+    return statusLower == 'draft' || statusLower == 'perlu_revisi';
+  }
+  
+  /// Method untuk mengajukan naskah
+  Future<void> _ajukanNaskah(NaskahData naskah) async {
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ajukan Naskah'),
+        content: Text(
+          'Apakah Anda yakin ingin mengajukan naskah "${naskah.judul}" untuk direview oleh editor?\n\n'
+          'Setelah diajukan, naskah akan masuk ke antrian review.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryGreen,
+            ),
+            child: const Text(
+              'Ajukan',
+              style: TextStyle(color: AppTheme.white),
+            ),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    if (!mounted) return;
+    
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+      ),
+    );
+    
+    try {
+      final response = await NaskahService.ajukanNaskah(naskah.id);
+      
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+      
+      if (response.sukses) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Naskah berhasil diajukan untuk review'),
+              backgroundColor: AppTheme.primaryGreen,
+            ),
+          );
+          // Reload list to refresh status
+          _loadNaskah();
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
   }
 }

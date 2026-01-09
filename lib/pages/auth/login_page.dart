@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/register_page.dart';
-import 'package:publishify/pages/auth/success_page.dart';
+// import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/models/general/auth_models.dart';
 import 'package:publishify/controllers/role_navigation_controller.dart';
@@ -105,43 +105,43 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _handleGoogleLogin() async {
-    // Show loading
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.white),
-              ),
-            ),
-            SizedBox(width: 16),
-            Text('Connecting to Google...'),
-          ],
-        ),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  // void _handleGoogleLogin() async {
+  //   // Show loading
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(
+  //       content: Row(
+  //         children: [
+  //           SizedBox(
+  //             width: 20,
+  //             height: 20,
+  //             child: CircularProgressIndicator(
+  //               strokeWidth: 2,
+  //               valueColor: AlwaysStoppedAnimation<Color>(AppTheme.white),
+  //             ),
+  //           ),
+  //           SizedBox(width: 16),
+  //           Text('Connecting to Google...'),
+  //         ],
+  //       ),
+  //       duration: Duration(seconds: 2),
+  //     ),
+  //   );
 
-    // Dummy Google login
-    await Future.delayed(const Duration(seconds: 2));
+  //   // Dummy Google login
+  //   await Future.delayed(const Duration(seconds: 2));
 
-    if (mounted) {
-      // Navigate to success page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const SuccessPage(
-            message: 'Login dengan Google berhasil!',
-          ),
-        ),
-      );
-    }
-  }
+  //   if (mounted) {
+  //     // Navigate to success page
+  //     Navigator.pushReplacement(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder: (context) => const SuccessPage(
+  //           message: 'Login dengan Google berhasil!',
+  //         ),
+  //       ),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -200,34 +200,34 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
                 
                 // Continue with Google Button
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _handleGoogleLogin,
-                    style: AppTheme.googleButtonStyle,
-                    icon: Image.network(
-                      'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
-                      width: 24,
-                      height: 24,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.g_mobiledata,
-                          size: 24,
-                          color: AppTheme.googleBlue,
-                        );
-                      },
-                    ),
-                    label: const Text(
-                      'Continue with Google',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.black,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
+                // SizedBox(
+                //   height: 50,
+                //   child: ElevatedButton.icon(
+                //     onPressed: _handleGoogleLogin,
+                //     style: AppTheme.googleButtonStyle,
+                //     icon: Image.network(
+                //       'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                //       width: 24,
+                //       height: 24,
+                //       errorBuilder: (context, error, stackTrace) {
+                //         return const Icon(
+                //           Icons.g_mobiledata,
+                //           size: 24,
+                //           color: AppTheme.googleBlue,
+                //         );
+                //       },
+                //     ),
+                //     label: const Text(
+                //       'Continue with Google',
+                //       style: TextStyle(
+                //         fontSize: 16,
+                //         fontWeight: FontWeight.w500,
+                //         color: AppTheme.black,
+                //       ),
+                //     ),
+                //   ),
+                // ),
+                // const SizedBox(height: 32),
                 
                 // Divider with "or"
                 Row(

@@ -1,89 +1,70 @@
 import 'package:flutter/material.dart';
-import 'package:publishify/utils/theme.dart';
-import 'package:publishify/models/editor/editor_models.dart';
-import 'package:publishify/models/editor/review_models.dart' show StatusReview;
-import 'package:publishify/services/editor/editor_service.dart';
-import 'package:publishify/utils/editor_navigation.dart';
+import 'dart:async';
 
-/// Halaman Naskah Masuk untuk Editor
-/// Menampilkan daftar naskah baru yang perlu direview
+import '../../../models/editor/review_models.dart';
+import '../../../services/editor/naskah_masuk_service.dart';
+
 class NaskahMasukPage extends StatefulWidget {
-  const NaskahMasukPage({Key? key}) : super(key: key);
+  const NaskahMasukPage({super.key});
 
   @override
   State<NaskahMasukPage> createState() => _NaskahMasukPageState();
 }
 
 class _NaskahMasukPageState extends State<NaskahMasukPage> {
-  bool _isLoading = true;
-  List<ReviewAssignment> _naskahMasuk = [];
-  String _selectedFilter = 'semua';
+  bool _isLoading = false;
+  List<ReviewNaskah> _reviewList = [];
+  StatusReview? _selectedStatus; // Filter by status: null = semua
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadNaskahMasuk();
+    _loadReviewMasuk();
   }
 
-  Future<void> _loadNaskahMasuk() async {
+  Future<void> _loadReviewMasuk() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
-      setState(() => _isLoading = true);
-      
-      // Parse status filter
-      StatusReview? statusFilter;
-      if (_selectedFilter != 'semua') {
-        try {
-          statusFilter = StatusReview.values.firstWhere(
-            (e) => e.name == _selectedFilter,
-          );
-        } catch (_) {
-          // Ignore if not found
-        }
-      }
-      
-      final assignments = await EditorService.getReviewAssignments(
-        status: statusFilter,
+      final response = await NaskahMasukService.ambilNaskahMasuk(
+        halaman: 1,
+        limit: 100,
+        status: _selectedStatus,
       );
-      
+
+      if (response.sukses && response.data != null) {
+        setState(() {
+          _reviewList = response.data!;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = response.pesan;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _naskahMasuk = assignments.where((assignment) => 
-          assignment.status == 'ditugaskan' || 
-          assignment.status == 'sedang_review'
-        ).toList();
+        _errorMessage = 'Terjadi kesalahan: $e';
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal memuat data naskah')),
-        );
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Naskah Masuk',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppTheme.primaryGreen,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('Naskah Masuk'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadNaskahMasuk,
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadReviewMasuk,
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -91,9 +72,7 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
         children: [
           _buildFilterSection(),
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : _buildNaskahList(),
+            child: _buildContent(),
           ),
         ],
       ),
@@ -102,59 +81,118 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
 
   Widget _buildFilterSection() {
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Row(
+      padding: const EdgeInsets.all(16.0),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromRGBO(158, 158, 158, 0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Filter: ',
+            'Filter Status Review:',
             style: TextStyle(
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('semua', 'Semua'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('ditugaskan', 'Baru Ditugaskan'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('sedang_review', 'Sedang Review'),
-                ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilterChip(
+                label: const Text('Semua'),
+                selected: _selectedStatus == null,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedStatus = null;
+                  });
+                  _loadReviewMasuk();
+                },
               ),
-            ),
+              FilterChip(
+                label: const Text('Ditugaskan'),
+                selected: _selectedStatus == StatusReview.ditugaskan,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedStatus = selected ? StatusReview.ditugaskan : null;
+                  });
+                  _loadReviewMasuk();
+                },
+              ),
+              FilterChip(
+                label: const Text('Dalam Proses'),
+                selected: _selectedStatus == StatusReview.dalam_proses,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedStatus = selected ? StatusReview.dalam_proses : null;
+                  });
+                  _loadReviewMasuk();
+                },
+              ),
+              FilterChip(
+                label: const Text('Selesai'),
+                selected: _selectedStatus == StatusReview.selesai,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedStatus = selected ? StatusReview.selesai : null;
+                  });
+                  _loadReviewMasuk();
+                },
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String value, String label) {
-    final isSelected = _selectedFilter == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _selectedFilter = value;
-        });
-        _loadNaskahMasuk();
-      },
-      selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.2),
-      checkmarkColor: AppTheme.primaryGreen,
-      labelStyle: TextStyle(
-        color: isSelected ? AppTheme.primaryGreen : Colors.grey[700],
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-      ),
-    );
-  }
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-  Widget _buildNaskahList() {
-    if (_naskahMasuk.isEmpty) {
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadReviewMasuk,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_reviewList.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -166,18 +204,10 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Tidak ada naskah masuk',
+              'Tidak ada review yang ditugaskan',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
                 color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Naskah baru akan muncul di sini',
-              style: TextStyle(
-                color: Colors.grey[500],
+                fontSize: 16,
               ),
             ),
           ],
@@ -186,19 +216,18 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadNaskahMasuk,
+      onRefresh: _loadReviewMasuk,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _naskahMasuk.length,
+        itemCount: _reviewList.length,
         itemBuilder: (context, index) {
-          final naskah = _naskahMasuk[index];
-          return _buildNaskahCard(naskah);
+          return _buildReviewCard(_reviewList[index]);
         },
       ),
     );
   }
 
-  Widget _buildNaskahCard(ReviewAssignment naskah) {
+  Widget _buildReviewCard(ReviewNaskah review) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -206,13 +235,14 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () => _openNaskahDetail(naskah),
         borderRadius: BorderRadius.circular(12),
+        onTap: () => _openReviewDetail(review),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header: Judul Naskah & Status Review
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -221,134 +251,135 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          naskah.judulNaskah,
+                          review.naskah.judul,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Oleh: ${naskah.penulis}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                        if (review.naskah.subJudul != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            review.naskah.subJudul!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
-                  _buildStatusBadge(naskah.status),
+                  _buildStatusBadge(review.status),
                 ],
               ),
               const SizedBox(height: 12),
-              
-              // Priority and Tags
+
+              // Penulis
               Row(
                 children: [
-                  _buildPriorityBadge(naskah.prioritas),
-                  const SizedBox(width: 12),
+                  Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 6),
                   Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: (naskah.tags ?? []).take(2).map((tag) => 
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            tag,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.blue[700],
-                            ),
+                    child: Text(
+                      review.naskah.penulis?.profilPengguna?.namaLengkap ?? 
+                      review.naskah.penulis?.email ?? 'Tidak diketahui',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Kategori & Genre
+              if (review.naskah.kategori != null && review.naskah.genre != null)
+                Row(
+                  children: [
+                    Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${review.naskah.kategori!.nama} • ${review.naskah.genre!.nama}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 8),
+
+              // Tanggal Ditugaskan
+              Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Ditugaskan: ${_formatDate(review.ditugaskanPada)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Rekomendasi (jika sudah selesai)
+              if (review.rekomendasi != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _getRekomendasiColor(review.rekomendasi!).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _getRekomendasiColor(review.rekomendasi!).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getRekomendasiIcon(review.rekomendasi!),
+                        size: 18,
+                        color: _getRekomendasiColor(review.rekomendasi!),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Rekomendasi: ${_getRekomendasiLabel(review.rekomendasi!)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _getRekomendasiColor(review.rekomendasi!),
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ).toList(),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              
-              // Timeline info
-              Row(
-                children: [
-                  Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Ditugaskan: ${_formatDate(naskah.tanggalDitugaskan)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: _getDeadlineColor(naskah.batasWaktu),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Deadline: ${_formatDate(naskah.batasWaktu)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _getDeadlineColor(naskah.batasWaktu),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 12),
-              
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => _openNaskahDetail(naskah),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppTheme.primaryGreen),
                       ),
-                      child: Text(
-                        'Lihat Detail',
-                        style: TextStyle(color: AppTheme.primaryGreen),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Feedback Count
+              if (review.feedbackCount != null && review.feedbackCount! > 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.comment, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${review.feedbackCount} Feedback',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: naskah.status == 'ditugaskan' 
-                        ? () => _startReview(naskah)
-                        : () => _continueReview(naskah),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryGreen,
-                      ),
-                      child: Text(
-                        naskah.status == 'ditugaskan' ? 'Mulai Review' : 'Lanjut Review',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -356,125 +387,121 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color color;
+  Widget _buildStatusBadge(StatusReview status) {
+    Color backgroundColor;
+    Color textColor;
     String label;
-    
+
     switch (status) {
-      case 'ditugaskan':
-        color = Colors.orange;
-        label = 'Baru Ditugaskan';
+      case StatusReview.ditugaskan:
+        backgroundColor = Colors.orange[100]!;
+        textColor = Colors.orange[900]!;
+        label = 'Ditugaskan';
         break;
-      case 'sedang_review':
-        color = Colors.blue;
-        label = 'Sedang Review';
+      case StatusReview.dalam_proses:
+        backgroundColor = Colors.blue[100]!;
+        textColor = Colors.blue[900]!;
+        label = 'Dalam Proses';
         break;
-      default:
-        color = Colors.grey;
-        label = status;
+      case StatusReview.selesai:
+        backgroundColor = Colors.green[100]!;
+        textColor = Colors.green[900]!;
+        label = 'Selesai';
+        break;
+      case StatusReview.dibatalkan:
+        backgroundColor = Colors.red[100]!;
+        textColor = Colors.red[900]!;
+        label = 'Dibatalkan';
+        break;
     }
-    
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: color,
+          color: textColor,
           fontSize: 12,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
-  Widget _buildPriorityBadge(int priority) {
-    Color color;
-    String label;
-    
-    switch (priority) {
-      case 1:
-        color = Colors.red;
-        label = 'Prioritas Tinggi';
-        break;
-      case 2:
-        color = Colors.orange;
-        label = 'Prioritas Sedang';
-        break;
-      default:
-        color = Colors.green;
-        label = 'Prioritas Normal';
+  Color _getRekomendasiColor(Rekomendasi rekomendasi) {
+    switch (rekomendasi) {
+      case Rekomendasi.setujui:
+        return Colors.green;
+      case Rekomendasi.revisi:
+        return Colors.orange;
+      case Rekomendasi.tolak:
+        return Colors.red;
     }
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.flag,
-            size: 12,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
-  Color _getDeadlineColor(DateTime deadline) {
-    final now = DateTime.now();
-    final daysLeft = deadline.difference(now).inDays;
-    
-    if (daysLeft < 0) return Colors.red;
-    if (daysLeft <= 1) return Colors.orange;
-    return Colors.green;
+  IconData _getRekomendasiIcon(Rekomendasi rekomendasi) {
+    switch (rekomendasi) {
+      case Rekomendasi.setujui:
+        return Icons.check_circle;
+      case Rekomendasi.revisi:
+        return Icons.edit;
+      case Rekomendasi.tolak:
+        return Icons.cancel;
+    }
+  }
+
+  String _getRekomendasiLabel(Rekomendasi rekomendasi) {
+    switch (rekomendasi) {
+      case Rekomendasi.setujui:
+        return 'Setujui';
+      case Rekomendasi.revisi:
+        return 'Perlu Revisi';
+      case Rekomendasi.tolak:
+        return 'Tolak';
+    }
   }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final diff = date.difference(now);
-    
-    if (diff.inDays == 0) {
-      return 'Hari ini';
-    } else if (diff.inDays == 1) {
-      return 'Besok';
-    } else if (diff.inDays == -1) {
-      return 'Kemarin';
-    } else if (diff.inDays > 0) {
-      return '${diff.inDays} hari lagi';
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      final hour = date.hour.toString().padLeft(2, '0');
+      final minute = date.minute.toString().padLeft(2, '0');
+      return 'Hari ini, $hour:$minute';
+    } else if (difference.inDays == 1) {
+      final hour = date.hour.toString().padLeft(2, '0');
+      final minute = date.minute.toString().padLeft(2, '0');
+      return 'Kemarin, $hour:$minute';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} hari lalu';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks minggu lalu';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '$months bulan lalu';
     } else {
-      return '${-diff.inDays} hari yang lalu';
+      final day = date.day.toString().padLeft(2, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      final year = date.year;
+      return '$day-$month-$year';
     }
   }
 
-  void _openNaskahDetail(ReviewAssignment naskah) {
-    if (naskah.idNaskah != null) {
-      EditorNavigation.toDetailReviewNaskah(context, naskah.idNaskah!);
-    }
-  }
-
-  void _startReview(ReviewAssignment naskah) {
-    // TODO: Update status to 'sedang_review'
-    EditorNavigation.toReviewNaskah(context);
-  }
-
-  void _continueReview(ReviewAssignment naskah) {
-    EditorNavigation.toReviewNaskah(context);
+  void _openReviewDetail(ReviewNaskah review) {
+    // TODO: Navigate to review detail page
+    Navigator.pushNamed(
+      context,
+      '/editor/review/detail',
+      arguments: review.id,
+    ).then((_) {
+      // Refresh when back from detail
+      _loadReviewMasuk();
+    });
   }
 }

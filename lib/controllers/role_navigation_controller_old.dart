@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/models/general/auth_models.dart';
 import 'package:publishify/services/general/auth_service.dart';
-import 'package:publishify/utils/routes.dart';
+import 'package:publishify/routes/app_routes.dart';
 import 'package:logger/logger.dart';
 
 /// Controller untuk mengelola navigasi berdasarkan peran pengguna

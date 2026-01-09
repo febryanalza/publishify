@@ -13,7 +13,6 @@ class PercetakanDashboardPage extends StatefulWidget {
 class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
   bool _isLoading = true;
   List<PesananCetak> _recentOrders = [];
-  PercetakanStats? _stats;
   String? _error;
 
   @override
@@ -29,135 +28,29 @@ class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
     });
 
     try {
-      // Gunakan data dummy untuk sementara
-      await Future.delayed(const Duration(milliseconds: 500));
-      
+      // Ambil pesanan terbaru dari server
+      final ordersResponse = await PercetakanService.ambilDaftarPesanan(
+        halaman: 1,
+        limit: 5, // Ambil 5 pesanan terbaru untuk dashboard
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        _recentOrders = _getDummyOrders();
-        _stats = _getDummyStats();
+        // Set pesanan terbaru dari server
+        if (ordersResponse.sukses && ordersResponse.data != null) {
+          _recentOrders = ordersResponse.data!;
+        }
+
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
-  }
-
-  // Data dummy untuk pesanan
-  List<PesananCetak> _getDummyOrders() {
-    final now = DateTime.now();
-    return [
-      PesananCetak(
-        id: '1',
-        idNaskah: 'naskah-1',
-        idPemesan: 'penulis-1',
-        nomorPesanan: 'PO-2024-001',
-        jumlah: 100,
-        formatKertas: 'A5',
-        jenisKertas: 'HVS 70gr',
-        jenisCover: 'Soft Cover',
-        finishingTambahan: ['Laminasi Doff'],
-        catatan: 'Mohon dikerjakan dengan teliti',
-        hargaTotal: '850000',
-        status: 'tertunda',
-        tanggalPesan: now.subtract(const Duration(hours: 2)),
-        estimasiSelesai: now.add(const Duration(days: 7)),
-        diperbaruiPada: now.subtract(const Duration(hours: 2)),
-        naskah: const NaskahInfo(
-          id: 'naskah-1',
-          judul: 'Petualangan Anak Rimba',
-          jumlahHalaman: 120,
-        ),
-        pemesan: const PemesanInfo(
-          id: 'penulis-1',
-          email: 'ahmad@example.com',
-          profilPengguna: ProfilPenggunaInfo(
-            namaDepan: 'Ahmad',
-            namaBelakang: 'Santoso',
-          ),
-        ),
-      ),
-      PesananCetak(
-        id: '2',
-        idNaskah: 'naskah-2',
-        idPemesan: 'penulis-2',
-        nomorPesanan: 'PO-2024-002',
-        jumlah: 50,
-        formatKertas: 'A4',
-        jenisKertas: 'Art Paper 120gr',
-        jenisCover: 'Hard Cover',
-        finishingTambahan: ['Emboss', 'Spot UV'],
-        hargaTotal: '1200000',
-        status: 'dalam_produksi',
-        tanggalPesan: now.subtract(const Duration(days: 2)),
-        estimasiSelesai: now.add(const Duration(days: 5)),
-        diperbaruiPada: now.subtract(const Duration(hours: 6)),
-        naskah: const NaskahInfo(
-          id: 'naskah-2',
-          judul: 'Panduan Bisnis Online',
-          jumlahHalaman: 200,
-        ),
-        pemesan: const PemesanInfo(
-          id: 'penulis-2',
-          email: 'siti@example.com',
-          profilPengguna: ProfilPenggunaInfo(
-            namaDepan: 'Siti',
-            namaBelakang: 'Nurhaliza',
-          ),
-        ),
-      ),
-      PesananCetak(
-        id: '3',
-        idNaskah: 'naskah-3',
-        idPemesan: 'penulis-3',
-        nomorPesanan: 'PO-2024-003',
-        jumlah: 200,
-        formatKertas: '14x20cm',
-        jenisKertas: 'Book Paper 70gr',
-        jenisCover: 'Soft Cover',
-        finishingTambahan: ['Laminasi Glossy'],
-        hargaTotal: '950000',
-        status: 'siap',
-        tanggalPesan: now.subtract(const Duration(days: 5)),
-        estimasiSelesai: now.add(const Duration(days: 2)),
-        diperbaruiPada: now.subtract(const Duration(hours: 12)),
-        naskah: const NaskahInfo(
-          id: 'naskah-3',
-          judul: 'Kumpulan Puisi Remaja',
-          jumlahHalaman: 80,
-        ),
-        pemesan: const PemesanInfo(
-          id: 'penulis-3',
-          email: 'budi@example.com',
-          profilPengguna: ProfilPenggunaInfo(
-            namaDepan: 'Budi',
-            namaBelakang: 'Prasetyo',
-          ),
-        ),
-      ),
-    ];
-  }
-
-  // Data dummy untuk statistik
-  PercetakanStats _getDummyStats() {
-    return const PercetakanStats(
-      totalPesanan: 45,
-      pesananAktif: 12,
-      pesananSelesai: 33,
-      totalRevenue: '15000000',
-      statusBreakdown: StatusBreakdown(
-        tertunda: 5,
-        diterima: 3,
-        dalamProduksi: 2,
-        kontrolKualitas: 1,
-        siap: 1,
-        dikirim: 2,
-        terkirim: 30,
-        dibatalkan: 1,
-      ),
-    );
   }
 
   @override
@@ -188,10 +81,6 @@ class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildStatsCards(),
-                        const SizedBox(height: 24),
-                        _buildQuickActions(),
-                        const SizedBox(height: 24),
                         _buildRecentOrders(),
                       ],
                     ),
@@ -223,299 +112,6 @@ class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
     );
   }
 
-  Widget _buildStatsCards() {
-    if (_stats == null) return const SizedBox();
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Ringkasan',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Total Pesanan',
-                _stats!.totalPesanan.toString(),
-                Icons.shopping_bag_outlined,
-                Colors.blue,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Pesanan Aktif',
-                _stats!.pesananAktif.toString(),
-                Icons.pending_actions,
-                Colors.orange,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Selesai',
-                _stats!.pesananSelesai.toString(),
-                Icons.check_circle_outline,
-                Colors.green,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Revenue',
-                PercetakanService.formatHarga(_stats!.totalRevenue),
-                Icons.attach_money,
-                Colors.purple,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildStatusBreakdown(),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBreakdown() {
-    if (_stats == null) return const SizedBox();
-
-    final breakdown = _stats!.statusBreakdown;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Status Pesanan',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildStatusRow('tertunda', breakdown.tertunda, Colors.grey),
-          _buildStatusRow('diterima', breakdown.diterima, Colors.blue),
-          _buildStatusRow('dalam_produksi', breakdown.dalamProduksi, Colors.orange),
-          _buildStatusRow('kontrol_kualitas', breakdown.kontrolKualitas, Colors.purple),
-          _buildStatusRow('siap', breakdown.siap, Colors.green),
-          _buildStatusRow('dikirim', breakdown.dikirim, Colors.teal),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusRow(String status, int count, Color color) {
-    final labelStatus = PercetakanService.ambilLabelStatus();
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              labelStatus[status] ?? status,
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-          Text(
-            count.toString(),
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    final menuItems = PercetakanService.ambilMenuItems();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Aksi Cepat',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 1.5,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: menuItems.length > 4 ? 4 : menuItems.length,
-          itemBuilder: (context, index) {
-            final item = menuItems[index];
-            return _buildQuickActionCard(item);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionCard(Map<String, dynamic> item) {
-    final colorMap = {
-      'blue': Colors.blue,
-      'orange': Colors.orange,
-      'purple': Colors.purple,
-      'green': Colors.green,
-      'indigo': Colors.indigo,
-    };
-
-    final color = colorMap[item['warna']] ?? Colors.blue;
-
-    return InkWell(
-      onTap: () {
-        // TODO: Navigate to respective page
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Navigasi ke ${item['judul']}')),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _getIconData(item['icon']),
-              color: color,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item['judul'],
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item['subjudul'],
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _getIconData(String iconName) {
-    final iconMap = {
-      'inbox': Icons.inbox,
-      'print': Icons.print,
-      'check_circle': Icons.check_circle,
-      'local_shipping': Icons.local_shipping,
-      'analytics': Icons.analytics,
-    };
-    return iconMap[iconName] ?? Icons.help_outline;
-  }
-
   Widget _buildRecentOrders() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,10 +127,7 @@ class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
             ),
             TextButton(
               onPressed: () {
-                // TODO: Navigate to all orders
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Lihat semua pesanan')),
-                );
+                Navigator.pushNamed(context, '/percetakan/pesanan');
               },
               child: const Text('Lihat Semua'),
             ),
@@ -611,10 +204,16 @@ class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to order detail
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Detail pesanan ${order.nomorPesanan}')),
-          );
+          Navigator.pushNamed(
+            context,
+            '/percetakan/pesanan/detail',
+            arguments: order.id,
+          ).then((result) {
+            // Refresh jika ada perubahan
+            if (result == true) {
+              _loadDashboardData();
+            }
+          });
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

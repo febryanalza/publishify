@@ -41,6 +41,7 @@ class ReviewNaskah {
   final NaskahInfo naskah;
   final EditorInfo editor;
   final List<FeedbackReview> feedback;
+  final int? feedbackCount; // from _count.feedback
 
   ReviewNaskah({
     required this.id,
@@ -55,26 +56,42 @@ class ReviewNaskah {
     required this.naskah,
     required this.editor,
     this.feedback = const [],
+    this.feedbackCount,
   });
 
   factory ReviewNaskah.fromJson(Map<String, dynamic> json) {
+    // Handle _count dari backend
+    int? feedbackCount;
+    if (json['_count'] != null && json['_count']['feedback'] != null) {
+      feedbackCount = json['_count']['feedback'] as int?;
+    }
+
     return ReviewNaskah(
-      id: json['id'],
-      idNaskah: json['idNaskah'],
-      idEditor: json['idEditor'],
-      status: StatusReview.values.firstWhere((e) => e.name == json['status']),
+      id: json['id'] ?? '',
+      idNaskah: json['idNaskah'] ?? '',
+      idEditor: json['idEditor'] ?? '',
+      status: StatusReview.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => StatusReview.ditugaskan,
+      ),
       rekomendasi: json['rekomendasi'] != null 
-          ? Rekomendasi.values.firstWhere((e) => e.name == json['rekomendasi'])
+          ? Rekomendasi.values.firstWhere(
+              (e) => e.name == json['rekomendasi'],
+              orElse: () => Rekomendasi.revisi,
+            )
           : null,
       catatan: json['catatan'],
-      ditugaskanPada: DateTime.parse(json['ditugaskanPada']),
+      ditugaskanPada: json['ditugaskanPada'] != null 
+          ? DateTime.parse(json['ditugaskanPada']) 
+          : DateTime.now(),
       dimulaiPada: json['dimulaiPada'] != null ? DateTime.parse(json['dimulaiPada']) : null,
       selesaiPada: json['selesaiPada'] != null ? DateTime.parse(json['selesaiPada']) : null,
-      naskah: NaskahInfo.fromJson(json['naskah']),
-      editor: EditorInfo.fromJson(json['editor']),
+      naskah: NaskahInfo.fromJson(json['naskah'] ?? {}),
+      editor: EditorInfo.fromJson(json['editor'] ?? {}),
       feedback: (json['feedback'] as List<dynamic>?)
           ?.map((f) => FeedbackReview.fromJson(f))
           .toList() ?? [],
+      feedbackCount: feedbackCount,
     );
   }
 
@@ -101,48 +118,53 @@ class NaskahInfo {
   final String id;
   final String judul;
   final String? subJudul;
-  final String sinopsis;
+  final String? sinopsis;
   final String? isbn;
   final StatusNaskah status;
   final String? urlSampul;
   final String? urlFile;
   final int? jumlahHalaman;
   final int? jumlahKata;
-  final PenulisInfo penulis;
-  final KategoriInfo kategori;
-  final GenreInfo genre;
+  final PenulisInfo? penulis;
+  final KategoriInfo? kategori;
+  final GenreInfo? genre;
 
   NaskahInfo({
     required this.id,
     required this.judul,
     this.subJudul,
-    required this.sinopsis,
+    this.sinopsis,
     this.isbn,
     required this.status,
     this.urlSampul,
     this.urlFile,
     this.jumlahHalaman,
     this.jumlahKata,
-    required this.penulis,
-    required this.kategori,
-    required this.genre,
+    this.penulis,
+    this.kategori,
+    this.genre,
   });
 
   factory NaskahInfo.fromJson(Map<String, dynamic> json) {
     return NaskahInfo(
-      id: json['id'],
-      judul: json['judul'],
+      id: json['id'] ?? '',
+      judul: json['judul'] ?? '',
       subJudul: json['subJudul'],
       sinopsis: json['sinopsis'],
       isbn: json['isbn'],
-      status: StatusNaskah.values.firstWhere((e) => e.name == json['status']),
+      status: json['status'] != null 
+          ? StatusNaskah.values.firstWhere(
+              (e) => e.name == json['status'],
+              orElse: () => StatusNaskah.draft,
+            )
+          : StatusNaskah.draft,
       urlSampul: json['urlSampul'],
       urlFile: json['urlFile'],
       jumlahHalaman: json['jumlahHalaman'],
       jumlahKata: json['jumlahKata'],
-      penulis: PenulisInfo.fromJson(json['penulis']),
-      kategori: KategoriInfo.fromJson(json['kategori']),
-      genre: GenreInfo.fromJson(json['genre']),
+      penulis: json['penulis'] != null ? PenulisInfo.fromJson(json['penulis']) : null,
+      kategori: json['kategori'] != null ? KategoriInfo.fromJson(json['kategori']) : null,
+      genre: json['genre'] != null ? GenreInfo.fromJson(json['genre']) : null,
     );
   }
 
@@ -158,9 +180,9 @@ class NaskahInfo {
       'urlFile': urlFile,
       'jumlahHalaman': jumlahHalaman,
       'jumlahKata': jumlahKata,
-      'penulis': penulis.toJson(),
-      'kategori': kategori.toJson(),
-      'genre': genre.toJson(),
+      'penulis': penulis?.toJson(),
+      'kategori': kategori?.toJson(),
+      'genre': genre?.toJson(),
     };
   }
 }
@@ -179,8 +201,8 @@ class PenulisInfo {
 
   factory PenulisInfo.fromJson(Map<String, dynamic> json) {
     return PenulisInfo(
-      id: json['id'],
-      email: json['email'],
+      id: json['id'] ?? '',
+      email: json['email'] ?? '',
       profilPengguna: json['profilPengguna'] != null 
           ? ProfilPengguna.fromJson(json['profilPengguna'])
           : null,
@@ -198,13 +220,13 @@ class PenulisInfo {
 
 /// Model untuk Profil Pengguna
 class ProfilPengguna {
-  final String namaDepan;
-  final String namaBelakang;
+  final String? namaDepan;
+  final String? namaBelakang;
   final String? namaTampilan;
 
   ProfilPengguna({
-    required this.namaDepan,
-    required this.namaBelakang,
+    this.namaDepan,
+    this.namaBelakang,
     this.namaTampilan,
   });
 
@@ -224,7 +246,7 @@ class ProfilPengguna {
     };
   }
 
-  String get namaLengkap => '$namaDepan $namaBelakang';
+  String get namaLengkap => '${namaDepan ?? ''} ${namaBelakang ?? ''}'.trim();
 }
 
 /// Model untuk Info Editor
@@ -241,8 +263,8 @@ class EditorInfo {
 
   factory EditorInfo.fromJson(Map<String, dynamic> json) {
     return EditorInfo(
-      id: json['id'],
-      email: json['email'],
+      id: json['id'] ?? '',
+      email: json['email'] ?? '',
       profilPengguna: json['profilPengguna'] != null 
           ? ProfilPengguna.fromJson(json['profilPengguna'])
           : null,

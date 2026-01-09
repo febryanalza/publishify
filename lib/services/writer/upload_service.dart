@@ -171,31 +171,40 @@ class UploadResponse {
 /// Upload Data Model
 class UploadData {
   final String id;
-  final String namaFile;
-  final String namaAsli;
-  final String mimeType;
-  final int ukuran;
+  final String namaFileAsli;
+  final String namaFileSimpan;
   final String url;
+  final String? urlPublik;
+  final int ukuran;
+  final String mimeType;
+  final String ekstensi;
+  final String tujuan;
   final String path;
 
   UploadData({
     required this.id,
-    required this.namaFile,
-    required this.namaAsli,
-    required this.mimeType,
-    required this.ukuran,
+    required this.namaFileAsli,
+    required this.namaFileSimpan,
     required this.url,
+    this.urlPublik,
+    required this.ukuran,
+    required this.mimeType,
+    required this.ekstensi,
+    required this.tujuan,
     required this.path,
   });
 
   factory UploadData.fromJson(Map<String, dynamic> json) {
     return UploadData(
       id: json['id'] ?? '',
-      namaFile: json['namaFile'] ?? '',
-      namaAsli: json['namaAsli'] ?? '',
-      mimeType: json['mimeType'] ?? '',
-      ukuran: json['ukuran'] ?? 0,
+      namaFileAsli: json['namaFileAsli'] ?? '',
+      namaFileSimpan: json['namaFileSimpan'] ?? '',
       url: json['url'] ?? '',
+      urlPublik: json['urlPublik'],
+      ukuran: json['ukuran'] ?? 0,
+      mimeType: json['mimeType'] ?? '',
+      ekstensi: json['ekstensi'] ?? '',
+      tujuan: json['tujuan'] ?? '',
       path: json['path'] ?? '',
     );
   }

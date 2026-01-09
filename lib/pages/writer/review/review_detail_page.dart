@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/writer/review_models.dart';
 import 'package:publishify/services/writer/review_service.dart';
+import 'package:publishify/services/writer/naskah_service.dart';
+import 'package:publishify/pages/writer/naskah/edit_naskah_page.dart';
 
 class ReviewDetailPage extends StatefulWidget {
   final ReviewData review;
@@ -397,7 +399,6 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
   Widget _buildFeedbackCard(FeedbackData feedback) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(12),
@@ -406,39 +407,84 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
           width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: InkWell(
+        onTap: () => _handleFeedbackTap(feedback),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppTheme.primaryGreen,
-                child: Text(
-                  (feedback.editor?.profilPengguna?.namaTampilan?.substring(0, 1).toUpperCase() ?? 'E'),
-                  style: const TextStyle(
-                    color: AppTheme.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      feedback.editor?.profilPengguna?.namaTampilan ?? 'Editor',
-                      style: AppTheme.bodyMedium.copyWith(
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppTheme.primaryGreen,
+                    child: Text(
+                      (feedback.editor?.profilPengguna?.namaTampilan?.substring(0, 1).toUpperCase() ?? 'E'),
+                      style: const TextStyle(
+                        color: AppTheme.white,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryDark,
+                        fontSize: 14,
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          feedback.editor?.profilPengguna?.namaTampilan ?? 'Editor',
+                          style: AppTheme.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryDark,
+                          ),
+                        ),
+                        Text(
+                          _formatFullDate(feedback.dibuatPada),
+                          style: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.greyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.edit_outlined,
+                    color: AppTheme.primaryGreen,
+                    size: 20,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                feedback.isi,
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.touch_app,
+                      size: 14,
+                      color: AppTheme.primaryGreen,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      _formatFullDate(feedback.dibuatPada),
+                      'Tap untuk edit naskah',
                       style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.greyMedium,
+                        color: AppTheme.primaryGreen,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -446,14 +492,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            feedback.isi,
-            style: AppTheme.bodyMedium.copyWith(
-              color: AppTheme.primaryDark,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -572,6 +611,83 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       return '${date.day} ${months[date.month - 1]} ${date.year}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return dateString;
+    }
+  }
+
+  Future<void> _handleFeedbackTap(FeedbackData feedback) async {
+    // Validasi: cek apakah naskah ada
+    if (_review.naskah == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data naskah tidak ditemukan'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: AppTheme.primaryGreen,
+        ),
+      ),
+    );
+
+    try {
+      // Ambil detail lengkap naskah dari server
+      final response = await NaskahService.ambilDetailNaskah(_review.naskah!.id);
+
+      // Close loading
+      if (mounted) Navigator.pop(context);
+
+      if (response.sukses && response.data != null) {
+        // Import EditNaskahPage jika belum
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditNaskahPage(
+              naskah: response.data!,
+            ),
+          ),
+        );
+
+        // Jika berhasil edit, refresh data review
+        if (result == true && mounted) {
+          _loadDetailData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Naskah berhasil diperbarui. Silakan submit ulang untuk review baru.'),
+              backgroundColor: AppTheme.primaryGreen,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: AppTheme.errorRed,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading if still showing
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
     }
   }
 }

@@ -89,20 +89,30 @@ class NetworkImageWidget extends StatelessWidget {
           color: AppTheme.backgroundLight,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.image_not_supported,
-                size: 40,
-                color: AppTheme.greyMedium.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Gambar tidak tersedia',
-                style: AppTheme.bodySmall.copyWith(
-                  color: AppTheme.greyMedium,
-                  fontSize: 10,
+              Flexible(
+                child: Icon(
+                  Icons.image_not_supported,
+                  size: 40,
+                  color: AppTheme.greyMedium.withValues(alpha: 0.5),
                 ),
-                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    'Gambar tidak tersedia',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: AppTheme.greyMedium,
+                      fontSize: 10,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
             ],
           ),
@@ -142,18 +152,25 @@ class SampulBukuImage extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.book,
-              size: 50,
-              color: AppTheme.greyMedium.withValues(alpha: 0.5),
+            Flexible(
+              child: Icon(
+                Icons.book,
+                size: 50,
+                color: AppTheme.greyMedium.withValues(alpha: 0.5),
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Sampul Buku',
-              style: AppTheme.bodySmall.copyWith(
-                color: AppTheme.greyMedium,
-                fontSize: 10,
+            const SizedBox(height: 4),
+            Flexible(
+              child: Text(
+                'Sampul Buku',
+                style: AppTheme.bodySmall.copyWith(
+                  color: AppTheme.greyMedium,
+                  fontSize: 10,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

@@ -208,8 +208,6 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildInfoCard(),
-                                    const SizedBox(height: 20),
                                     _buildFilterDropdown(),
                                     const SizedBox(height: 16),
                                     _buildStatsRow(),
@@ -285,57 +283,7 @@ class _ReviewCollectionPageState extends State<ReviewCollectionPage> {
     );
   }
 
-  Widget _buildInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.primaryGreen.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryGreen,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.info_outline,
-              color: AppTheme.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Kelola Review Buku',
-                  style: AppTheme.bodyLarge.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Filter, terima, atau tugaskan buku untuk review sesuai keahlian Anda',
-                  style: AppTheme.bodySmall.copyWith(
-                    color: AppTheme.primaryDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildFilterDropdown() {
     final filters = [
