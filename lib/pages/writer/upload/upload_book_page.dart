@@ -17,14 +17,32 @@ class UploadBookPage extends StatefulWidget {
 class _UploadBookPageState extends State<UploadBookPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  final _subTitleController = TextEditingController();  // BARU
   final _isbnController = TextEditingController();
   final _synopsisController = TextEditingController();
   
   String? _selectedCategoryId;  // Menyimpan ID (UUID)
   String? _selectedGenreId;      // Menyimpan ID (UUID)
+  String? _selectedFormatBuku;   // BARU: A4, A5, B5
+  String? _selectedBahasaTulis;  // BARU: id, en, etc.
   List<Kategori> _kategoris = [];
   List<Genre> _genres = [];
   bool _isLoadingData = true;
+
+  // BARU: Opsi format buku
+  final List<Map<String, String>> _formatBukuOptions = [
+    {'value': 'A4', 'label': 'A4 (21 x 29.7 cm)'},
+    {'value': 'A5', 'label': 'A5 (14.8 x 21 cm)'},
+    {'value': 'B5', 'label': 'B5 (17.6 x 25 cm)'},
+  ];
+
+  // BARU: Opsi bahasa tulis
+  final List<Map<String, String>> _bahasaTulisOptions = [
+    {'value': 'id', 'label': 'Bahasa Indonesia'},
+    {'value': 'en', 'label': 'English'},
+    {'value': 'jv', 'label': 'Bahasa Jawa'},
+    {'value': 'su', 'label': 'Bahasa Sunda'},
+  ];
 
   @override
   void initState() {
@@ -78,6 +96,7 @@ class _UploadBookPageState extends State<UploadBookPage> {
   @override
   void dispose() {
     _titleController.dispose();
+    _subTitleController.dispose();  // BARU
     _isbnController.dispose();
     _synopsisController.dispose();
     super.dispose();
@@ -107,10 +126,13 @@ class _UploadBookPageState extends State<UploadBookPage> {
 
       final submission = BookSubmission(
         title: _titleController.text,
+        subTitle: _subTitleController.text.isEmpty ? null : _subTitleController.text,  // BARU
         synopsis: _synopsisController.text,
         category: _selectedCategoryId!,  // Kirim ID (UUID)
         genre: _selectedGenreId!,         // Kirim ID (UUID)
         isbn: _isbnController.text.isEmpty ? null : _isbnController.text,
+        formatBuku: _selectedFormatBuku ?? 'A5',  // BARU: Default A5
+        bahasaTulis: _selectedBahasaTulis ?? 'id',  // BARU: Default Indonesia
       );
 
       // Navigate to upload file page
@@ -170,12 +192,36 @@ class _UploadBookPageState extends State<UploadBookPage> {
                       
                       const SizedBox(height: 16),
                       
+                      // Sub Judul (Optional) - BARU
+                      _buildTextField(
+                        label: 'Sub Judul (opsional)',
+                        controller: _subTitleController,
+                        validator: (value) {
+                          if (value != null && value.trim().length > 200) {
+                            return 'Sub judul maksimal 200 karakter';
+                          }
+                          return null;
+                        },
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
                       // ISBN (Optional)
                       _buildTextField(
                         label: 'ISBN (opsional)',
                         controller: _isbnController,
                         validator: null, // Optional field
                       ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Format Buku Dropdown - BARU
+                      _buildFormatBukuDropdown(),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Bahasa Tulis Dropdown - BARU
+                      _buildBahasaTulisDropdown(),
                       
                       const SizedBox(height: 16),
                       
@@ -375,6 +421,120 @@ class _UploadBookPageState extends State<UploadBookPage> {
                     color: AppTheme.primaryGreen,
                   ),
                 ),
+        ),
+      ],
+    );
+  }
+
+  // BARU: Widget untuk Format Buku Dropdown
+  Widget _buildFormatBukuDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Format Buku',
+          style: AppTheme.bodyMedium.copyWith(
+            color: AppTheme.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.greyDisabled,
+              width: 1,
+            ),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: _selectedFormatBuku ?? 'A5',
+            decoration: InputDecoration(
+              hintText: 'Pilih format buku',
+              hintStyle: AppTheme.bodyMedium.copyWith(
+                color: AppTheme.greyMedium,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            ),
+            items: _formatBukuOptions.map((option) {
+              return DropdownMenuItem(
+                value: option['value'],
+                child: Text(option['label']!),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedFormatBuku = value;
+              });
+            },
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              color: AppTheme.primaryGreen,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // BARU: Widget untuk Bahasa Tulis Dropdown
+  Widget _buildBahasaTulisDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Bahasa Tulis',
+          style: AppTheme.bodyMedium.copyWith(
+            color: AppTheme.black,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.greyDisabled,
+              width: 1,
+            ),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: _selectedBahasaTulis ?? 'id',
+            decoration: InputDecoration(
+              hintText: 'Pilih bahasa tulis',
+              hintStyle: AppTheme.bodyMedium.copyWith(
+                color: AppTheme.greyMedium,
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+            ),
+            items: _bahasaTulisOptions.map((option) {
+              return DropdownMenuItem(
+                value: option['value'],
+                child: Text(option['label']!),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedBahasaTulis = value;
+              });
+            },
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              color: AppTheme.primaryGreen,
+            ),
+          ),
         ),
       ],
     );

@@ -34,10 +34,12 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
   late TextEditingController _jumlahHalamanController;
   late TextEditingController _jumlahKataController;
   late TextEditingController _urlSampulController;
+  late TextEditingController _isbnController;
 
   // Dropdown values
   String? _selectedKategoriId;
   String? _selectedGenreId;
+  String? _selectedFormatBuku;
   bool _publik = false;
 
   // Data untuk dropdown
@@ -72,7 +74,8 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
     final status = widget.naskah.status.toLowerCase();
     
     // Status yang tidak boleh diedit
-    final lockedStatuses = ['disetujui', 'ditolak', 'diterbitkan'];
+    // Naskah terkunci setelah siap terbit atau diterbitkan
+    final lockedStatuses = ['siap_terbit', 'ditolak', 'diterbitkan'];
     
     if (lockedStatuses.contains(status)) {
       showDialog(
@@ -116,9 +119,11 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
       text: widget.naskah.jumlahKata?.toString() ?? '',
     );
     _urlSampulController = TextEditingController(text: widget.naskah.urlSampul ?? '');
+    _isbnController = TextEditingController(text: widget.naskah.isbn ?? '');
 
     _selectedKategoriId = widget.naskah.kategori.id;
     _selectedGenreId = widget.naskah.genre.id;
+    _selectedFormatBuku = widget.naskah.formatBuku;
     _publik = widget.naskah.publik;
     _sampulUrl = widget.naskah.urlSampul;
     _naskahUrl = widget.naskah.urlFile;
@@ -231,6 +236,7 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
     _jumlahHalamanController.dispose();
     _jumlahKataController.dispose();
     _urlSampulController.dispose();
+    _isbnController.dispose();
     super.dispose();
   }
 
@@ -256,6 +262,7 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
       sinopsis: _sinopsisController.text.trim(),
       idKategori: _selectedKategoriId,
       idGenre: _selectedGenreId,
+      formatBuku: _selectedFormatBuku,
       jumlahHalaman: _jumlahHalamanController.text.isNotEmpty
         ? int.tryParse(_jumlahHalamanController.text)
         : null,
@@ -267,6 +274,9 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
         : null,
       urlFile: _naskahUrl, // Gunakan URL yang sudah diupload atau URL lama
       publik: _publik,
+      isbn: _isbnController.text.isNotEmpty
+        ? _isbnController.text.trim()
+        : null,
     );
 
     setState(() {
@@ -481,6 +491,46 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Genre wajib dipilih';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Format Buku
+          _buildSectionTitle('Format Buku (Opsional)'),
+          DropdownButtonFormField<String>(
+            value: _selectedFormatBuku,
+            decoration: AppTheme.inputDecoration(
+              hintText: 'Pilih format buku',
+              prefixIcon: const Icon(Icons.aspect_ratio, color: AppTheme.primaryGreen),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'A4', child: Text('A4 (210 x 297 mm)')),
+              DropdownMenuItem(value: 'A5', child: Text('A5 (148 x 210 mm)')),
+              DropdownMenuItem(value: 'B5', child: Text('B5 (176 x 250 mm)')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _selectedFormatBuku = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // ISBN
+          _buildSectionTitle('ISBN (Opsional)'),
+          TextFormField(
+            controller: _isbnController,
+            decoration: AppTheme.inputDecoration(
+              hintText: 'Masukkan ISBN (jika ada)',
+              prefixIcon: const Icon(Icons.qr_code, color: AppTheme.primaryGreen),
+            ),
+            validator: (value) {
+              if (value != null && value.isNotEmpty) {
+                if (value.length < 10 || value.length > 17) {
+                  return 'ISBN harus 10-17 karakter';
+                }
               }
               return null;
             },
@@ -1089,8 +1139,8 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
       'draft': 'Draft',
       'diajukan': 'Diajukan',
       'dalam_review': 'Dalam Review',
-      'perlu_revisi': 'Perlu Revisi',
-      'disetujui': 'Disetujui',
+      'dalam_editing': 'Dalam Editing',
+      'siap_terbit': 'Siap Terbit',
       'ditolak': 'Ditolak',
       'diterbitkan': 'Diterbitkan',
     };

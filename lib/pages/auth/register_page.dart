@@ -4,7 +4,6 @@ import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/models/general/auth_models.dart';
 import 'package:publishify/pages/main_layout.dart';
 import 'package:publishify/pages/editor/editor_main_page.dart';
-import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -121,8 +120,6 @@ class _RegisterPageState extends State<RegisterPage> {
               );
             } else if (primaryRole == 'editor') {
               destinationPage = const EditorMainPage(initialIndex: 0);
-            } else if (primaryRole == 'percetakan') {
-              destinationPage = const PercetakanMainPage(initialIndex: 0);
             } else {
               // Default ke penulis
               destinationPage = MainLayout(

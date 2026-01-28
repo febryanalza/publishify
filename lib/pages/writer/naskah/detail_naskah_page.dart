@@ -4,6 +4,7 @@ import 'package:publishify/pages/writer/naskah/edit_naskah_page.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/widgets/network_image_widget.dart';
+import 'package:publishify/widgets/naskah_action_dialogs.dart';
 
 class DetailNaskahPage extends StatefulWidget {
   final String naskahId;
@@ -61,9 +62,9 @@ class _DetailNaskahPageState extends State<DetailNaskahPage> {
         return AppTheme.googleBlue;
       case 'dalam_review':
         return AppTheme.googleYellow;
-      case 'perlu_revisi':
+      case 'dalam_editing':
         return AppTheme.googleRed;
-      case 'disetujui':
+      case 'siap_terbit':
         return AppTheme.googleGreen;
       case 'diterbitkan':
         return AppTheme.primaryGreen;
@@ -82,10 +83,10 @@ class _DetailNaskahPageState extends State<DetailNaskahPage> {
         return 'Diajukan';
       case 'dalam_review':
         return 'Dalam Review';
-      case 'perlu_revisi':
-        return 'Perlu Revisi';
-      case 'disetujui':
-        return 'Disetujui';
+      case 'dalam_editing':
+        return 'Dalam Editing';
+      case 'siap_terbit':
+        return 'Siap Terbit';
       case 'diterbitkan':
         return 'Diterbitkan';
       case 'ditolak':
@@ -207,16 +208,162 @@ class _DetailNaskahPageState extends State<DetailNaskahPage> {
             _buildReviewSection(),
             const SizedBox(height: 24),
           ],
+          
+          // Tombol Aksi (Atur Harga dan Hapus)
+          _buildActionButtons(),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
   
+  /// Tombol aksi untuk naskah (Atur Harga Jual & Hapus)
+  Widget _buildActionButtons() {
+    final status = naskah!.status.toLowerCase();
+    final isDiterbitkan = status == 'diterbitkan';
+    final canDelete = status != 'diterbitkan';
+    
+    // Jika tidak ada aksi yang bisa dilakukan, tidak perlu tampilkan section
+    if (!isDiterbitkan && !canDelete) {
+      return const SizedBox.shrink();
+    }
+    
+    return Card(
+      elevation: 2,
+      color: AppTheme.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.settings,
+                  color: AppTheme.primaryGreen,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Aksi Naskah',
+                  style: AppTheme.headingSmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Tombol Atur Harga Jual (hanya untuk naskah diterbitkan)
+            if (isDiterbitkan) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _aturHargaJual,
+                  icon: const Icon(Icons.attach_money, color: AppTheme.white),
+                  label: Text(
+                    naskah!.hargaJual != null && naskah!.hargaJual! > 0
+                        ? 'Ubah Harga Jual (Rp ${_formatCurrency(naskah!.hargaJual!)})'
+                        : 'Atur Harga Jual',
+                    style: const TextStyle(color: AppTheme.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            
+            // Tombol Hapus Naskah (tidak bisa hapus naskah diterbitkan)
+            if (canDelete) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _hapusNaskah,
+                  icon: Icon(Icons.delete_outline, color: AppTheme.errorRed),
+                  label: Text(
+                    'Hapus Naskah',
+                    style: TextStyle(color: AppTheme.errorRed),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppTheme.errorRed),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Format currency untuk tampilan harga
+  String _formatCurrency(double value) {
+    return value.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+  
+  /// Method untuk menampilkan dialog atur harga jual
+  void _aturHargaJual() {
+    showAturHargaJualDialog(
+      context,
+      naskahId: naskah!.id,
+      judulNaskah: naskah!.judul,
+      hargaSaatIni: naskah!.hargaJual,
+      onResult: (sukses, pesan, hargaBaru) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(pesan),
+            backgroundColor: sukses ? AppTheme.primaryGreen : AppTheme.errorRed,
+          ),
+        );
+        if (sukses) {
+          _loadDetailNaskah(); // Reload detail untuk refresh data
+        }
+      },
+    );
+  }
+  
+  /// Method untuk menampilkan dialog hapus naskah
+  void _hapusNaskah() {
+    showHapusNaskahDialog(
+      context,
+      naskahId: naskah!.id,
+      judulNaskah: naskah!.judul,
+      statusNaskah: naskah!.status,
+      onResult: (sukses, pesan) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(pesan),
+            backgroundColor: sukses ? AppTheme.primaryGreen : AppTheme.errorRed,
+          ),
+        );
+        if (sukses) {
+          // Kembali ke halaman sebelumnya setelah hapus berhasil
+          Navigator.of(context).pop(true);
+        }
+      },
+    );
+  }
+  
   /// Cek apakah naskah bisa diajukan
+  /// Hanya naskah dengan status draft yang bisa diajukan
   bool _canAjukan() {
     if (naskah == null) return false;
     final status = naskah!.status.toLowerCase();
-    return status == 'draft' || status == 'perlu_revisi';
+    return status == 'draft';
   }
   
   /// Tombol untuk mengajukan naskah ke editor

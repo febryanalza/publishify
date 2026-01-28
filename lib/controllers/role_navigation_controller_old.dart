@@ -12,18 +12,15 @@ class RoleNavigationController {
   /// 
   /// Returns:
   /// - '/dashboard/penulis' untuk role penulis
-  /// - '/dashboard/editor' untuk role editor  
-  /// - '/dashboard/percetakan' untuk role percetakan
+  /// - '/dashboard/editor' untuk role editor
   /// - '/dashboard/admin' untuk role admin
   /// - '/dashboard/penulis' sebagai default fallback
   static String getRoleBasedRoute(List<String> userRoles) {
-    // Prioritas role: admin > editor > percetakan > penulis
+    // Prioritas role: admin > editor > penulis
     if (userRoles.contains('admin')) {
       return AppRoutes.dashboardAdmin;
     } else if (userRoles.contains('editor')) {
       return AppRoutes.dashboardEditor;
-    } else if (userRoles.contains('percetakan')) {
-      return AppRoutes.dashboardPercetakan;
     } else {
       // Default ke penulis jika role tidak dikenali atau penulis
       return AppRoutes.dashboardPenulis;
@@ -128,7 +125,6 @@ class RoleNavigationController {
   static String getPrimaryRole(List<String> userRoles) {
     if (userRoles.contains('admin')) return 'admin';
     if (userRoles.contains('editor')) return 'editor';
-    if (userRoles.contains('percetakan')) return 'percetakan';
     return 'penulis';
   }
 
@@ -141,8 +137,6 @@ class RoleNavigationController {
         return 'Selamat datang, Administrator!';
       case 'editor':
         return 'Selamat datang, Editor!';
-      case 'percetakan':
-        return 'Selamat datang, Tim Percetakan!';
       case 'penulis':
       default:
         return 'Selamat datang, Penulis!';
@@ -156,8 +150,6 @@ class RoleNavigationController {
         return Icons.admin_panel_settings;
       case 'editor':
         return Icons.edit;
-      case 'percetakan':
-        return Icons.print;
       case 'penulis':
       default:
         return Icons.create;
@@ -171,8 +163,6 @@ class RoleNavigationController {
         return Colors.red;
       case 'editor':
         return Colors.blue;
-      case 'percetakan':
-        return Colors.green;
       case 'penulis':
       default:
         return Colors.orange;
@@ -273,54 +263,6 @@ class EditorDashboardPage extends StatelessWidget {
                 Navigator.pushNamed(context, '/editor/feedback');
               },
               child: Text('Berikan Feedback'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Dashboard untuk Percetakan
-class PercetakanDashboardPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard Percetakan'),
-        backgroundColor: RoleNavigationController.getRoleColor('percetakan'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              RoleNavigationController.getRoleIcon('percetakan'),
-              size: 100,
-              color: RoleNavigationController.getRoleColor('percetakan'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Dashboard Percetakan',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text('Kelola pesanan cetak dan pengiriman'),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman pesanan
-                Navigator.pushNamed(context, '/percetakan/orders');
-              },
-              child: Text('Pesanan Cetak'),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate ke halaman produksi
-                Navigator.pushNamed(context, '/percetakan/production');
-              },
-              child: Text('Status Produksi'),
             ),
           ],
         ),

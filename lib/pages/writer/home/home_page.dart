@@ -53,6 +53,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadNaskahFromAPI() async {
     try {
+      // Load status count dari statistik API (selalu load, tidak bergantung pada buku terbit)
+      _statusCount = await NaskahService.getStatusCount();
+      
       // Get published naskah only (latest 10) from PUBLIC endpoint
       final response = await NaskahService.getNaskahTerbit(
         limit: 10,
@@ -82,27 +85,21 @@ class _HomePageState extends State<HomePage> {
             description: naskah.sinopsis,
           );
         }).toList();
-
-        // Get status count
-        _statusCount = await NaskahService.getStatusCount();
       } else {
-        // No data, show empty message instead of dummy
+        // No published books
         _books = [];
-        _statusCount = {
-          'draft': 0,
-          'dalam_review': 0,
-          'perlu_revisi': 0,
-          'diterbitkan': 0,
-        };
       }
     } catch (e) {
       // Error, show empty
       _books = [];
       _statusCount = {
         'draft': 0,
+        'diajukan': 0,
         'dalam_review': 0,
-        'perlu_revisi': 0,
+        'dalam_editing': 0,
+        'siap_terbit': 0,
         'diterbitkan': 0,
+        'ditolak': 0,
       };
     }
   }
@@ -132,11 +129,11 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
 
-                          const SizedBox(height: 10),
-                          // Search Bar
-                          _buildSearchBar(),
-                          
                           const SizedBox(height: 24),
+                          // Search Bar
+                          // _buildSearchBar(),
+                          
+                          // const SizedBox(height: 24),
                           
                           // Status Summary
                           _buildStatusSummary(),
@@ -206,56 +203,56 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.greyDisabled, width: 1),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    'Search',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.greyMedium,
-                    ),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.search,
-                    color: AppTheme.greyMedium,
-                    size: 24,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.greyDisabled, width: 1),
-            ),
-            child: const Icon(
-              Icons.tune,
-              color: AppTheme.primaryDark,
-              size: 24,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildSearchBar() {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 20),
+  //     child: Row(
+  //       children: [
+  //         Expanded(
+  //           child: Container(
+  //             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  //             decoration: BoxDecoration(
+  //               color: AppTheme.white,
+  //               borderRadius: BorderRadius.circular(12),
+  //               border: Border.all(color: AppTheme.greyDisabled, width: 1),
+  //             ),
+  //             child: Row(
+  //               children: [
+  //                 Text(
+  //                   'Search',
+  //                   style: AppTheme.bodyMedium.copyWith(
+  //                     color: AppTheme.greyMedium,
+  //                   ),
+  //                 ),
+  //                 const Spacer(),
+  //                 const Icon(
+  //                   Icons.search,
+  //                   color: AppTheme.greyMedium,
+  //                   size: 24,
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //         const SizedBox(width: 12),
+  //         Container(
+  //           width: 48,
+  //           height: 48,
+  //           decoration: BoxDecoration(
+  //             color: AppTheme.white,
+  //             borderRadius: BorderRadius.circular(12),
+  //             border: Border.all(color: AppTheme.greyDisabled, width: 1),
+  //           ),
+  //           child: const Icon(
+  //             Icons.tune,
+  //             color: AppTheme.primaryDark,
+  //             size: 24,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildStatusSummary() {
     return Padding(
@@ -286,9 +283,9 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(width: 12),
               StatusCard(
-                title: 'Revisi',
-                count: _statusCount['perlu_revisi'] ?? 0,
-                onTap: () => _filterByStatus('perlu_revisi'),
+                title: 'Editing',
+                count: _statusCount['dalam_editing'] ?? 0,
+                onTap: () => _filterByStatus('dalam_editing'),
               ),
               const SizedBox(width: 12),
               StatusCard(
@@ -320,12 +317,7 @@ class _HomePageState extends State<HomePage> {
             onTap: () => _handleAction('revisi'),
             hasNotification: true,
           ),
-          ActionButton(
-            icon: Icons.print,
-            label: '',
-            onTap: () => _handleAction('print'),
-            badgeIcon: Icons.store,
-          ),
+
           ActionButton(
             icon: Icons.list,
             label: '',
@@ -435,8 +427,10 @@ class _HomePageState extends State<HomePage> {
       // Navigate to review page (changed from revision)
       Navigator.pushNamed(context, '/review');
     } else if (action == 'print') {
-      // Navigate to percetakan penulis page
-      Navigator.pushNamed(context, '/pilih-percetakan');
+      // TODO: Print functionality (percetakan removed)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fitur percetakan tidak tersedia')),
+      );
     } else if (action == 'list') {
       // Navigate to naskah list page
       Navigator.pushNamed(context, '/naskah-list');

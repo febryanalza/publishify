@@ -407,4 +407,119 @@ class AuthService {
   // ====================================
   // Methods updated to use UserData helper methods
 
+  // ====================================
+  // EMAIL VERIFICATION & PASSWORD RECOVERY
+  // ====================================
+
+  /// Verifikasi email dengan token
+  /// POST /api/auth/verifikasi-email
+  static Future<VerifikasiEmailResponse> verifikasiEmail(VerifikasiEmailRequest request) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/verifikasi-email');
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final responseData = jsonDecode(response.body);
+      final verifikasiResponse = VerifikasiEmailResponse.fromJson(responseData);
+
+      // Jika verifikasi berhasil, update status terverifikasi di local storage
+      if (verifikasiResponse.sukses) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(_keyTerverifikasi, true);
+        
+        // Update user data jika ada
+        final userDataJson = prefs.getString(_keyUserData);
+        if (userDataJson != null) {
+          try {
+            final userData = jsonDecode(userDataJson) as Map<String, dynamic>;
+            if (userData['pengguna'] != null) {
+              userData['pengguna']['terverifikasi'] = true;
+              await prefs.setString(_keyUserData, jsonEncode(userData));
+            }
+          } catch (e) {
+            logger.e('Error updating user data after verification: $e');
+          }
+        }
+        
+        logger.i('Email berhasil diverifikasi');
+      }
+
+      return verifikasiResponse;
+    } catch (e) {
+      logger.e('Verifikasi email error: $e');
+      return VerifikasiEmailResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Request reset password (lupa password)
+  /// POST /api/auth/lupa-password
+  static Future<LupaPasswordResponse> lupaPassword(LupaPasswordRequest request) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/lupa-password');
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final responseData = jsonDecode(response.body);
+      final lupaPasswordResponse = LupaPasswordResponse.fromJson(responseData);
+
+      if (lupaPasswordResponse.sukses) {
+        logger.i('Request lupa password berhasil dikirim');
+      }
+
+      return lupaPasswordResponse;
+    } catch (e) {
+      logger.e('Lupa password error: $e');
+      return LupaPasswordResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Reset password dengan token
+  /// POST /api/auth/reset-password
+  static Future<ResetPasswordResponse> resetPassword(ResetPasswordRequest request) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/reset-password');
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final responseData = jsonDecode(response.body);
+      final resetPasswordResponse = ResetPasswordResponse.fromJson(responseData);
+
+      if (resetPasswordResponse.sukses) {
+        logger.i('Password berhasil direset');
+      }
+
+      return resetPasswordResponse;
+    } catch (e) {
+      logger.e('Reset password error: $e');
+      return ResetPasswordResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
 }

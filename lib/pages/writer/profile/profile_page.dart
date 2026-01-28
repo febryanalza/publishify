@@ -27,6 +27,10 @@ class _ProfilePageState extends State<ProfilePage> {
   List<NaskahData> _naskahList = [];
   bool _isLoadingProfile = true;
   bool _isLoadingNaskah = true;
+  
+  // Statistik realtime dari API
+  int _totalBuku = 0;
+  int _bukuDiterbitkan = 0;
 
   @override
   void initState() {
@@ -35,14 +39,48 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _loadData() async {
-    // Load data from DummyData for stats only
+    // Load data from DummyData for fallback
     _profile = DummyData.getUserProfile();
     
     // Load user data from API (with cache)
     await _loadUserDataFromAPI();
     
+    // Load statistik naskah dari API
+    await _loadStatistikFromAPI();
+    
     // Load naskah from API for portfolio
     await _loadNaskahFromAPI();
+  }
+
+  /// Load statistik naskah dari API
+  Future<void> _loadStatistikFromAPI() async {
+    try {
+      final statusCount = await NaskahService.getStatusCount();
+      
+      if (mounted) {
+        setState(() {
+          // Total semua buku
+          _totalBuku = (statusCount['draft'] ?? 0) +
+              (statusCount['dalam_review'] ?? 0) +
+              (statusCount['dalam_editing'] ?? 0) +
+              (statusCount['diterbitkan'] ?? 0) +
+              (statusCount['diajukan'] ?? 0) +
+              (statusCount['siap_terbit'] ?? 0) +
+              (statusCount['ditolak'] ?? 0);
+          
+          // Buku yang sudah diterbitkan
+          _bukuDiterbitkan = statusCount['diterbitkan'] ?? 0;
+        });
+      }
+    } catch (e) {
+      // Fallback ke 0 jika error
+      if (mounted) {
+        setState(() {
+          _totalBuku = 0;
+          _bukuDiterbitkan = 0;
+        });
+      }
+    }
   }
 
   Future<void> _loadNaskahFromAPI() async {
@@ -322,14 +360,14 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           
           // Stats Row
-          // Stats Row - 2 columns layout
+          // Stats Row - 2 columns layout (data realtime dari API)
           Row(
             children: [
-              // Buku stat - Left side
+              // Total Buku stat - Left side
               Expanded(
                 child: StatItem(
-                  count: _profile.totalBooks,
-                  label: 'Buku',
+                  count: _totalBuku,
+                  label: 'Total Buku',
                 ),
               ),
               // Separator
@@ -338,11 +376,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: 40,
                 color: AppTheme.greyLight,
               ),
-              // Viewers stat - Right side
+              // Buku Terbit stat - Right side
               Expanded(
                 child: StatItem(
-                  count: _profile.totalViewers,
-                  label: 'Viewers',
+                  count: _bukuDiterbitkan,
+                  label: 'Terbit',
                 ),
               ),
             ],
@@ -665,6 +703,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       duration: Duration(seconds: 2),
                     ),
                   );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_open, color: AppTheme.primaryGreen),
+                title: const Text('Kelola File'),
+                onTap: () {
+                  Navigator.pop(context);
+                  AppRoutes.navigateToKelolaFile(context);
                 },
               ),
               ListTile(

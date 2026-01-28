@@ -17,14 +17,15 @@ enum Rekomendasi {
 }
 
 /// Enum untuk Status Naskah
+/// Alur: draft → diajukan → dalam_review → dalam_editing → siap_terbit → diterbitkan
 enum StatusNaskah {
-  draft,
-  diajukan,
-  dalam_review,
-  perlu_revisi,
-  disetujui,
-  ditolak,
-  diterbitkan,
+  draft,         // Draft awal (belum diajukan)
+  diajukan,      // 1. Submit - sudah diajukan untuk review
+  dalam_review,  // 2. Review - dalam proses review oleh editor
+  dalam_editing, // 3. Editing - proses perbaikan dari hasil review
+  siap_terbit,   // 4. Siap Terbit - pengurusan ISBN & dokumen
+  diterbitkan,   // 5. Terbit - sudah dipublikasikan
+  ditolak,       // Status khusus: naskah ditolak
 }
 
 /// Model untuk Review Naskah

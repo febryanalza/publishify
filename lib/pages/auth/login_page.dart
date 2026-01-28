@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/register_page.dart';
+import 'package:publishify/pages/auth/lupa_password_page.dart';
 // import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/models/general/auth_models.dart';
@@ -311,10 +312,10 @@ class _LoginPageState extends State<LoginPage> {
                   alignment: Alignment.centerLeft,
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot password
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Forgot password coming soon'),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LupaPasswordPage(),
                         ),
                       );
                     },

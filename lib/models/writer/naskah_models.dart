@@ -281,6 +281,8 @@ class NaskahDetail {
   final String? urlSampul;
   final String? urlFile;
   final bool publik;
+  final double? hargaJual;
+  final String? formatBuku;
   final String dibuatPada;
   final String diperbaruiPada;
   final PenulisInfo penulis;
@@ -302,6 +304,8 @@ class NaskahDetail {
     this.urlSampul,
     this.urlFile,
     required this.publik,
+    this.hargaJual,
+    this.formatBuku,
     required this.dibuatPada,
     required this.diperbaruiPada,
     required this.penulis,
@@ -325,6 +329,8 @@ class NaskahDetail {
       urlSampul: json['urlSampul'],
       urlFile: json['urlFile'],
       publik: json['publik'] ?? false,
+      hargaJual: json['hargaJual'] != null ? (json['hargaJual'] as num).toDouble() : null,
+      formatBuku: json['formatBuku'],
       dibuatPada: json['dibuatPada'] ?? '',
       diperbaruiPada: json['diperbaruiPada'] ?? '',
       penulis: PenulisInfo.fromJson(json['penulis'] ?? {}),
@@ -509,5 +515,230 @@ class EditorInfo {
           ? ProfilPenggunaDetail.fromJson(json['profilPengguna'])
           : null,
     );
+  }
+}
+
+// ====================================
+// MODELS UNTUK OPERASI NASKAH LANJUTAN
+// ====================================
+
+/// Request untuk terbitkan naskah (Editor/Admin)
+/// PUT /api/naskah/:id/terbitkan
+class TerbitkanNaskahRequest {
+  final String isbn;
+  final String? formatBuku; // A4, A5, B5
+  final int? jumlahHalaman;
+
+  TerbitkanNaskahRequest({
+    required this.isbn,
+    this.formatBuku,
+    this.jumlahHalaman,
+  });
+
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      'isbn': isbn,
+    };
+    if (formatBuku != null) {
+      data['formatBuku'] = formatBuku;
+    }
+    if (jumlahHalaman != null) {
+      data['jumlahHalaman'] = jumlahHalaman;
+    }
+    return data;
+  }
+}
+
+/// Response untuk terbitkan naskah
+class TerbitkanNaskahResponse {
+  final bool sukses;
+  final String pesan;
+  final NaskahData? data;
+
+  TerbitkanNaskahResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data,
+  });
+
+  factory TerbitkanNaskahResponse.fromJson(Map<String, dynamic> json) {
+    return TerbitkanNaskahResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+      data: json['data'] != null ? NaskahData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+/// Request untuk ubah status naskah (Editor/Admin)
+/// PUT /api/naskah/:id/status
+class UbahStatusNaskahRequest {
+  final String status;
+
+  UbahStatusNaskahRequest({
+    required this.status,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'status': status,
+    };
+  }
+}
+
+/// Response untuk ubah status naskah
+class UbahStatusNaskahResponse {
+  final bool sukses;
+  final String pesan;
+  final NaskahData? data;
+
+  UbahStatusNaskahResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data,
+  });
+
+  factory UbahStatusNaskahResponse.fromJson(Map<String, dynamic> json) {
+    return UbahStatusNaskahResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+      data: json['data'] != null ? NaskahData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+/// Request untuk atur harga jual (Penulis)
+/// PUT /api/naskah/:id/harga-jual
+class AturHargaJualRequest {
+  final double hargaJual;
+
+  AturHargaJualRequest({
+    required this.hargaJual,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'hargaJual': hargaJual,
+    };
+  }
+}
+
+/// Response untuk atur harga jual
+class AturHargaJualResponse {
+  final bool sukses;
+  final String pesan;
+  final NaskahData? data;
+
+  AturHargaJualResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data,
+  });
+
+  factory AturHargaJualResponse.fromJson(Map<String, dynamic> json) {
+    return AturHargaJualResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+      data: json['data'] != null ? NaskahData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+/// Response untuk hapus naskah (Penulis/Admin)
+/// DELETE /api/naskah/:id
+class HapusNaskahResponse {
+  final bool sukses;
+  final String pesan;
+
+  HapusNaskahResponse({
+    required this.sukses,
+    required this.pesan,
+  });
+
+  factory HapusNaskahResponse.fromJson(Map<String, dynamic> json) {
+    return HapusNaskahResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+    );
+  }
+}
+
+/// Enum untuk status naskah
+enum StatusNaskah {
+  draft,
+  diajukan,
+  dalamReview,
+  dalamEditing,
+  siapTerbit,
+  diterbitkan,
+  ditolak,
+  perluRevisi,
+}
+
+/// Extension untuk konversi StatusNaskah ke string backend
+extension StatusNaskahExtension on StatusNaskah {
+  String get value {
+    switch (this) {
+      case StatusNaskah.draft:
+        return 'draft';
+      case StatusNaskah.diajukan:
+        return 'diajukan';
+      case StatusNaskah.dalamReview:
+        return 'dalam_review';
+      case StatusNaskah.dalamEditing:
+        return 'dalam_editing';
+      case StatusNaskah.siapTerbit:
+        return 'siap_terbit';
+      case StatusNaskah.diterbitkan:
+        return 'diterbitkan';
+      case StatusNaskah.ditolak:
+        return 'ditolak';
+      case StatusNaskah.perluRevisi:
+        return 'perlu_revisi';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case StatusNaskah.draft:
+        return 'Draft';
+      case StatusNaskah.diajukan:
+        return 'Diajukan';
+      case StatusNaskah.dalamReview:
+        return 'Dalam Review';
+      case StatusNaskah.dalamEditing:
+        return 'Dalam Editing';
+      case StatusNaskah.siapTerbit:
+        return 'Siap Terbit';
+      case StatusNaskah.diterbitkan:
+        return 'Diterbitkan';
+      case StatusNaskah.ditolak:
+        return 'Ditolak';
+      case StatusNaskah.perluRevisi:
+        return 'Perlu Revisi';
+    }
+  }
+
+  static StatusNaskah fromString(String status) {
+    switch (status) {
+      case 'draft':
+        return StatusNaskah.draft;
+      case 'diajukan':
+        return StatusNaskah.diajukan;
+      case 'dalam_review':
+        return StatusNaskah.dalamReview;
+      case 'dalam_editing':
+        return StatusNaskah.dalamEditing;
+      case 'siap_terbit':
+        return StatusNaskah.siapTerbit;
+      case 'diterbitkan':
+        return StatusNaskah.diterbitkan;
+      case 'ditolak':
+        return StatusNaskah.ditolak;
+      case 'perlu_revisi':
+        return StatusNaskah.perluRevisi;
+      default:
+        return StatusNaskah.draft;
+    }
   }
 }

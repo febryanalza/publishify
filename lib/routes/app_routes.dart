@@ -13,24 +13,23 @@ import 'package:publishify/pages/editor/naskah/naskah_masuk_page.dart';
 // import 'package:publishify/pages/editor/feedback/editor_feedback_page.dart';
 // import 'package:publishify/pages/editor/editor_route_test_page.dart';
 
-// Percetakan pages imports
-import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
-import 'package:publishify/pages/percetakan/orders/percetakan_orders_page.dart';
-import 'package:publishify/pages/percetakan/orders/percetakan_order_detail_page.dart';
-
 // Auth pages imports
 import 'package:publishify/pages/auth/splash_screen.dart';
 // import 'package:publishify/pages/auth/login_page.dart';
 // import 'package:publishify/pages/auth/register_page.dart';
 import 'package:publishify/pages/auth/success_page.dart';
+import 'package:publishify/pages/auth/lupa_password_page.dart';
+import 'package:publishify/pages/auth/reset_password_page.dart';
+import 'package:publishify/pages/auth/verifikasi_email_page.dart';
 
 // Writer/Common pages imports
 import 'package:publishify/pages/main_layout.dart';
 // import 'package:publishify/pages/writer/home/home_page.dart';
 import 'package:publishify/pages/writer/upload/upload_book_page.dart';
+import 'package:publishify/pages/writer/upload/kelola_file_page.dart';
+import 'package:publishify/pages/writer/upload/detail_file_page.dart';
 import 'package:publishify/pages/writer/review/review_page.dart';
 import 'package:publishify/pages/writer/print/print_page.dart';
-import 'package:publishify/pages/writer/percetakan/percetakan_penulis_page.dart';
 import 'package:publishify/pages/writer/naskah/naskah_list_page.dart';
 import 'package:publishify/pages/writer/naskah/detail_naskah_page.dart';
 
@@ -42,21 +41,24 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String success = '/success';
+  static const String lupaPassword = '/lupa-password';
+  static const String resetPassword = '/reset-password';
+  static const String verifikasiEmail = '/verifikasi-email';
   static const String home = '/home';
   static const String statistics = '/statistics';
   static const String notifications = '/notifications';
   static const String profile = '/profile';
   static const String uploadBook = '/upload-book';
+  static const String kelolaFile = '/kelola-file';
+  static const String detailFile = '/detail-file';
   static const String review = '/review';
   static const String print = '/print';
-  static const String pilihPercetakan = '/pilih-percetakan';
   static const String naskahList = '/naskah-list';
   static const String detailNaskah = '/detail-naskah';
   
   // Dashboard routes untuk setiap role
   static const String dashboardPenulis = '/dashboard/penulis';
   static const String dashboardEditor = '/dashboard/editor';
-  static const String dashboardPercetakan = '/dashboard/percetakan';
   static const String dashboardAdmin = '/dashboard/admin';
 
   // Navigate to detail naskah with parameter
@@ -65,6 +67,26 @@ class AppRoutes {
       context,
       MaterialPageRoute(
         builder: (context) => DetailNaskahPage(naskahId: naskahId),
+      ),
+    );
+  }
+
+  // Navigate to kelola file page
+  static void navigateToKelolaFile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const KelolaFilePage(),
+      ),
+    );
+  }
+
+  // Navigate to detail file with parameter
+  static void navigateToDetailFile(BuildContext context, String fileId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailFilePage(fileId: fileId),
       ),
     );
   }
@@ -99,6 +121,31 @@ class AppRoutes {
           settings: settings,
         );
 
+      case '/lupa-password':
+        return MaterialPageRoute(
+          builder: (_) => const LupaPasswordPage(),
+          settings: settings,
+        );
+
+      case '/reset-password':
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => ResetPasswordPage(
+            initialToken: args?['token'],
+          ),
+          settings: settings,
+        );
+
+      case '/verifikasi-email':
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => VerifikasiEmailPage(
+            initialToken: args?['token'],
+            email: args?['email'],
+          ),
+          settings: settings,
+        );
+
       // ====================================
       // ROLE-BASED DASHBOARD ROUTES
       // ====================================
@@ -111,12 +158,6 @@ class AppRoutes {
       case '/dashboard/editor':
         return MaterialPageRoute(
           builder: (_) => const EditorMainPage(),
-          settings: settings,
-        );
-
-      case '/dashboard/percetakan':
-        return MaterialPageRoute(
-          builder: (_) => const PercetakanMainPage(),
           settings: settings,
         );
 
@@ -219,43 +260,6 @@ class AppRoutes {
 
       
       // ====================================
-      // PERCETAKAN SPECIFIC ROUTES
-      // ====================================
-      case '/percetakan/orders':
-        return MaterialPageRoute(
-          builder: (_) => const PercetakanOrdersPage(),
-          settings: settings,
-        );
-
-      case '/percetakan/pesanan':
-        return MaterialPageRoute(
-          builder: (_) => const PercetakanOrdersPage(),
-          settings: settings,
-        );
-
-      case '/percetakan/pesanan/detail':
-        final idPesanan = settings.arguments as String?;
-        if (idPesanan == null) {
-          return MaterialPageRoute(
-            builder: (_) => _buildPlaceholderPage(
-              'Error',
-              'ID pesanan tidak ditemukan',
-            ),
-            settings: settings,
-          );
-        }
-        return MaterialPageRoute(
-          builder: (_) => PercetakanOrderDetailPage(idPesanan: idPesanan),
-          settings: settings,
-        );
-
-      case '/percetakan/production':
-        return MaterialPageRoute(
-          builder: (_) => PercetakanProductionPage(),
-          settings: settings,
-        );
-
-      // ====================================
       // ADMIN SPECIFIC ROUTES
       // ====================================
       case '/admin/users':
@@ -306,6 +310,21 @@ class AppRoutes {
           settings: settings,
         );
 
+      case '/kelola-file':
+        return MaterialPageRoute(
+          builder: (_) => const KelolaFilePage(),
+          settings: settings,
+        );
+
+      case '/detail-file':
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => DetailFilePage(
+            fileId: args?['fileId'] ?? '',
+          ),
+          settings: settings,
+        );
+
       case '/review':
         return MaterialPageRoute(
           builder: (_) => const ReviewPage(),
@@ -315,12 +334,6 @@ class AppRoutes {
       case '/print':
         return MaterialPageRoute(
           builder: (_) => const PrintPage(),
-          settings: settings,
-        );
-
-      case '/pilih-percetakan':
-        return MaterialPageRoute(
-          builder: (_) => const PercetakanPenulisPage(),
           settings: settings,
         );
 
@@ -463,19 +476,6 @@ class AppRoutes {
 // PLACEHOLDER PAGES
 // Anda perlu membuat/import file-file page yang sesuai
 // ====================================
-
-/// Dashboard untuk Percetakan
-class PercetakanDashboardPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Dashboard Percetakan')),
-      body: Center(
-        child: Text('Percetakan Dashboard - TODO: Implement'),
-      ),
-    );
-  }
-}
 
 /// Dashboard untuk Admin
 class AdminDashboardPage extends StatelessWidget {
@@ -654,36 +654,6 @@ class EditorFeedbackPage extends StatelessWidget {
       appBar: AppBar(title: Text('Berikan Feedback')),
       body: Center(
         child: Text('Editor Feedback Page - TODO: Implement'),
-      ),
-    );
-  }
-}
-
-// ====================================
-// PERCETAKAN SPECIFIC PAGES
-// ====================================
-
-/// Percetakan Order List Page
-class PercetakanOrderListPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Pesanan Cetak')),
-      body: Center(
-        child: Text('Percetakan Order List - TODO: Implement'),
-      ),
-    );
-  }
-}
-
-/// Percetakan Production Page
-class PercetakanProductionPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Status Produksi')),
-      body: Center(
-        child: Text('Percetakan Production Page - TODO: Implement'),
       ),
     );
   }

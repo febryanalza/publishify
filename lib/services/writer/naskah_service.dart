@@ -89,29 +89,38 @@ class NaskahService {
         final data = jsonResponse['data'];
         final perStatus = data['perStatus'] as Map<String, dynamic>? ?? {};
 
-        // Map backend status to frontend labels
+        // Map backend status to frontend - return all statuses
         return {
           'draft': perStatus['draft'] ?? 0,
+          'diajukan': perStatus['diajukan'] ?? 0,
           'dalam_review': perStatus['dalam_review'] ?? 0,
-          'perlu_revisi': perStatus['perlu_revisi'] ?? 0,
+          'dalam_editing': perStatus['dalam_editing'] ?? 0,
+          'siap_terbit': perStatus['siap_terbit'] ?? 0,
           'diterbitkan': perStatus['diterbitkan'] ?? 0,
+          'ditolak': perStatus['ditolak'] ?? 0,
         };
       } else {
         _logger.e('Failed to get status count: ${response.statusCode}');
         return {
           'draft': 0,
+          'diajukan': 0,
           'dalam_review': 0,
-          'perlu_revisi': 0,
+          'dalam_editing': 0,
+          'siap_terbit': 0,
           'diterbitkan': 0,
+          'ditolak': 0,
         };
       }
     } catch (e) {
       _logger.e('Error getting status count: $e');
       return {
         'draft': 0,
+        'diajukan': 0,
         'dalam_review': 0,
-        'perlu_revisi': 0,
+        'dalam_editing': 0,
+        'siap_terbit': 0,
         'diterbitkan': 0,
+        'ditolak': 0,
       };
     }
   }
@@ -239,6 +248,8 @@ class NaskahService {
     required String idKategori,
     required String idGenre,
     String? isbn,
+    String? formatBuku,        // BARU: A4, A5, B5
+    String? bahasaTulis,       // BARU: id, en, etc.
     int? jumlahHalaman,
     int? jumlahKata,
     String? urlSampul,
@@ -273,6 +284,16 @@ class NaskahService {
 
       if (isbn != null && isbn.isNotEmpty) {
         body['isbn'] = isbn;
+      }
+
+      // BARU: Format buku (A4, A5, B5)
+      if (formatBuku != null && formatBuku.isNotEmpty) {
+        body['formatBuku'] = formatBuku;
+      }
+
+      // BARU: Bahasa tulis
+      if (bahasaTulis != null && bahasaTulis.isNotEmpty) {
+        body['bahasaTulis'] = bahasaTulis;
       }
 
       if (jumlahHalaman != null) {
@@ -321,12 +342,19 @@ class NaskahService {
     String? sinopsis,
     String? idKategori,
     String? idGenre,
+    String? formatBuku, // A4, A5, B5
     String? bahasaTulis,
     int? jumlahHalaman,
     int? jumlahKata,
     String? urlSampul,
     String? urlFile,
     bool? publik,
+    String? isbn,
+    // Dokumen Kelengkapan
+    String? urlSuratPerjanjian,
+    String? urlSuratKeaslian,
+    String? urlProposalNaskah,
+    String? urlBuktiTransfer,
   }) async {
     try {
       // Get access token from cache
@@ -364,6 +392,10 @@ class NaskahService {
         body['idGenre'] = idGenre;
       }
 
+      if (formatBuku != null && formatBuku.isNotEmpty) {
+        body['formatBuku'] = formatBuku;
+      }
+
       if (bahasaTulis != null && bahasaTulis.isNotEmpty) {
         body['bahasaTulis'] = bahasaTulis;
       }
@@ -386,6 +418,27 @@ class NaskahService {
 
       if (publik != null) {
         body['publik'] = publik;
+      }
+
+      if (isbn != null && isbn.isNotEmpty) {
+        body['isbn'] = isbn;
+      }
+
+      // Dokumen Kelengkapan
+      if (urlSuratPerjanjian != null) {
+        body['urlSuratPerjanjian'] = urlSuratPerjanjian;
+      }
+
+      if (urlSuratKeaslian != null) {
+        body['urlSuratKeaslian'] = urlSuratKeaslian;
+      }
+
+      if (urlProposalNaskah != null) {
+        body['urlProposalNaskah'] = urlProposalNaskah;
+      }
+
+      if (urlBuktiTransfer != null) {
+        body['urlBuktiTransfer'] = urlBuktiTransfer;
       }
 
       // Make API request
@@ -481,7 +534,7 @@ class NaskahService {
 
   /// Ajukan naskah untuk direview oleh editor
   /// PUT /api/naskah/:id/ajukan
-  /// Hanya bisa diajukan jika status draft atau perlu_revisi
+  /// Hanya bisa diajukan jika status draft
   static Future<CreateNaskahResponse> ajukanNaskah(String id, {String? catatan}) async {
     try {
       final accessToken = await AuthService.getAccessToken();
@@ -513,6 +566,165 @@ class NaskahService {
       return CreateNaskahResponse.fromJson(responseData);
     } catch (e) {
       return CreateNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  // ====================================
+  // ENDPOINT LANJUTAN (EDITOR & PENULIS)
+  // ====================================
+
+  /// Terbitkan naskah - Hanya untuk Editor/Admin
+  /// PUT /api/naskah/:id/terbitkan
+  /// Hanya bisa terbitkan naskah dengan status 'siap_terbit'
+  static Future<TerbitkanNaskahResponse> terbitkanNaskah(
+    String id, 
+    TerbitkanNaskahRequest request,
+  ) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return TerbitkanNaskahResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$id/terbitkan');
+
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return TerbitkanNaskahResponse.fromJson(responseData);
+    } catch (e) {
+      _logger.e('Error terbitkan naskah: $e');
+      return TerbitkanNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Ubah status naskah - Hanya untuk Editor/Admin
+  /// PUT /api/naskah/:id/status
+  static Future<UbahStatusNaskahResponse> ubahStatusNaskah(
+    String id,
+    String status,
+  ) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return UbahStatusNaskahResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$id/status');
+      
+      final request = UbahStatusNaskahRequest(status: status);
+
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return UbahStatusNaskahResponse.fromJson(responseData);
+    } catch (e) {
+      _logger.e('Error ubah status naskah: $e');
+      return UbahStatusNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Atur harga jual naskah - Hanya untuk Penulis (owner)
+  /// PUT /api/naskah/:id/harga-jual
+  /// Hanya bisa untuk naskah dengan status 'diterbitkan'
+  static Future<AturHargaJualResponse> aturHargaJual(
+    String id,
+    double hargaJual,
+  ) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return AturHargaJualResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$id/harga-jual');
+      
+      final request = AturHargaJualRequest(hargaJual: hargaJual);
+
+      final response = await http.put(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      final responseData = jsonDecode(response.body);
+      return AturHargaJualResponse.fromJson(responseData);
+    } catch (e) {
+      _logger.e('Error atur harga jual: $e');
+      return AturHargaJualResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Hapus naskah - Untuk Penulis (owner) atau Admin
+  /// DELETE /api/naskah/:id
+  /// Penulis tidak bisa hapus naskah yang sudah diterbitkan
+  static Future<HapusNaskahResponse> hapusNaskah(String id) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return HapusNaskahResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$id');
+
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      final responseData = jsonDecode(response.body);
+      return HapusNaskahResponse.fromJson(responseData);
+    } catch (e) {
+      _logger.e('Error hapus naskah: $e');
+      return HapusNaskahResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
       );

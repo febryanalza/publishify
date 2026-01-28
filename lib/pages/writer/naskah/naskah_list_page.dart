@@ -217,8 +217,8 @@ class _NaskahListPageState extends State<NaskahListPage> {
       'draft': 'Draft',
       'diajukan': 'Diajukan',
       'dalam_review': 'Dalam Review',
-      'perlu_revisi': 'Perlu Revisi',
-      'disetujui': 'Disetujui',
+      'dalam_editing': 'Dalam Editing',
+      'siap_terbit': 'Siap Terbit',
       'ditolak': 'Ditolak',
       'diterbitkan': 'Diterbitkan',
     };
@@ -233,9 +233,9 @@ class _NaskahListPageState extends State<NaskahListPage> {
         return Colors.blue;
       case 'dalam_review':
         return Colors.orange;
-      case 'perlu_revisi':
+      case 'dalam_editing':
         return AppTheme.errorRed;
-      case 'disetujui':
+      case 'siap_terbit':
         return Colors.green;
       case 'ditolak':
         return Colors.red;
@@ -593,9 +593,10 @@ class _NaskahListPageState extends State<NaskahListPage> {
   }
   
   /// Cek apakah naskah bisa diajukan
+  /// Hanya naskah dengan status draft yang bisa diajukan
   bool _canAjukan(String status) {
     final statusLower = status.toLowerCase();
-    return statusLower == 'draft' || statusLower == 'perlu_revisi';
+    return statusLower == 'draft';
   }
   
   /// Method untuk mengajukan naskah

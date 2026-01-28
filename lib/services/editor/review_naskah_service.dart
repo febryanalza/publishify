@@ -23,7 +23,7 @@ class ReviewNaskahService {
   // =====================================================
 
   /// Get daftar naskah yang disubmit untuk direview
-  /// Filter berdasarkan status: semua, diajukan, dalam_review, perlu_revisi
+  /// Filter berdasarkan status: semua, diajukan, dalam_review, dalam_editing, siap_terbit
   static Future<NaskahSubmissionResponse> getNaskahSubmissions({
     String? status,
     int limit = 20,

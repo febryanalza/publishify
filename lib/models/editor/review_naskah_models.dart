@@ -207,10 +207,11 @@ class NaskahSubmission {
       case 'diajukan': return 'Diajukan';
       case 'menunggu_review': return 'Menunggu Review';
       case 'dalam_review': return 'Dalam Review';
-      case 'perlu_revisi': return 'Perlu Revisi';
-      case 'disetujui': return 'Disetujui';
+      case 'dalam_editing': return 'Dalam Editing';
+      case 'siap_terbit': return 'Siap Terbit';
       case 'selesai_review': return 'Selesai Review';
       case 'ditolak': return 'Ditolak';
+      case 'diterbitkan': return 'Diterbitkan';
       default: return status;
     }
   }
@@ -231,9 +232,10 @@ class NaskahSubmission {
       case 'diajukan': return 0xFF2196F3; // Blue
       case 'menunggu_review': return 0xFFFF9800; // Orange
       case 'dalam_review': return 0xFF03A9F4; // Light Blue
-      case 'perlu_revisi': return 0xFFFFC107; // Amber
-      case 'disetujui': return 0xFF4CAF50; // Green
+      case 'dalam_editing': return 0xFFFFC107; // Amber
+      case 'siap_terbit': return 0xFF4CAF50; // Green
       case 'selesai_review': return 0xFF4CAF50; // Green
+      case 'diterbitkan': return 0xFF2E7D32; // Dark Green
       case 'ditolak': return 0xFFF44336; // Red
       default: return 0xFF9E9E9E; // Grey
     }

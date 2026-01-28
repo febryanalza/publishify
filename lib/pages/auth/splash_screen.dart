@@ -3,7 +3,6 @@ import 'package:publishify/utils/theme.dart';
 import 'package:publishify/pages/auth/login_page.dart';
 import 'package:publishify/pages/main_layout.dart';
 import 'package:publishify/pages/editor/editor_main_page.dart';
-import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
 import 'package:publishify/services/general/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -50,11 +49,6 @@ class _SplashScreenState extends State<SplashScreen> {
       } else if (primaryRole == 'editor') {
         // Arahkan ke halaman editor dengan bottom navigation (EditorMainPage)
         destinationPage = const EditorMainPage(
-          initialIndex: 0,
-        );
-      } else if (primaryRole == 'percetakan') {
-        // Arahkan ke halaman percetakan dengan bottom navigation (PercetakanMainPage)
-        destinationPage = const PercetakanMainPage(
           initialIndex: 0,
         );
       } else {

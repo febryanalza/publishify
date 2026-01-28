@@ -348,13 +348,133 @@ class PeranPengguna {
   }
 }
 
+// ===== VERIFIKASI EMAIL MODELS =====
+
+/// Model untuk Request Verifikasi Email
+/// POST /api/auth/verifikasi-email
+class VerifikasiEmailRequest {
+  final String token;
+
+  VerifikasiEmailRequest({required this.token});
+
+  Map<String, dynamic> toJson() {
+    return {'token': token};
+  }
+}
+
+/// Model untuk Response Verifikasi Email
+class VerifikasiEmailResponse {
+  final bool sukses;
+  final String pesan;
+
+  VerifikasiEmailResponse({
+    required this.sukses,
+    required this.pesan,
+  });
+
+  factory VerifikasiEmailResponse.fromJson(Map<String, dynamic> json) {
+    return VerifikasiEmailResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+    );
+  }
+}
+
+// ===== LUPA PASSWORD MODELS =====
+
+/// Model untuk Request Lupa Password
+/// POST /api/auth/lupa-password
+class LupaPasswordRequest {
+  final String email;
+
+  LupaPasswordRequest({required this.email});
+
+  Map<String, dynamic> toJson() {
+    return {'email': email};
+  }
+}
+
+/// Model untuk Response Lupa Password
+class LupaPasswordResponse {
+  final bool sukses;
+  final String pesan;
+  final LupaPasswordData? data;
+
+  LupaPasswordResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data,
+  });
+
+  factory LupaPasswordResponse.fromJson(Map<String, dynamic> json) {
+    return LupaPasswordResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+      data: json['data'] != null ? LupaPasswordData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+class LupaPasswordData {
+  final String? tokenReset; // Untuk development saja
+
+  LupaPasswordData({this.tokenReset});
+
+  factory LupaPasswordData.fromJson(Map<String, dynamic> json) {
+    return LupaPasswordData(
+      tokenReset: json['tokenReset'],
+    );
+  }
+}
+
+// ===== RESET PASSWORD MODELS =====
+
+/// Model untuk Request Reset Password
+/// POST /api/auth/reset-password
+class ResetPasswordRequest {
+  final String token;
+  final String kataSandiBaru;
+  final String konfirmasiKataSandiBaru;
+
+  ResetPasswordRequest({
+    required this.token,
+    required this.kataSandiBaru,
+    required this.konfirmasiKataSandiBaru,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'token': token,
+      'kataSandiBaru': kataSandiBaru,
+      'konfirmasiKataSandiBaru': konfirmasiKataSandiBaru,
+    };
+  }
+}
+
+/// Model untuk Response Reset Password
+class ResetPasswordResponse {
+  final bool sukses;
+  final String pesan;
+
+  ResetPasswordResponse({
+    required this.sukses,
+    required this.pesan,
+  });
+
+  factory ResetPasswordResponse.fromJson(Map<String, dynamic> json) {
+    return ResetPasswordResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+    );
+  }
+}
+
 // ===== JENIS PERAN ENUM =====
 
 /// Enum untuk JenisPeran sesuai dengan backend
 enum JenisPeran {
   penulis,
   editor,
-  percetakan,
   admin,
 }
 
@@ -366,8 +486,6 @@ extension JenisPeranExtension on JenisPeran {
         return 'penulis';
       case JenisPeran.editor:
         return 'editor';
-      case JenisPeran.percetakan:
-        return 'percetakan';
       case JenisPeran.admin:
         return 'admin';
     }
@@ -379,8 +497,6 @@ extension JenisPeranExtension on JenisPeran {
         return 'Penulis';
       case JenisPeran.editor:
         return 'Editor';
-      case JenisPeran.percetakan:
-        return 'Percetakan';
       case JenisPeran.admin:
         return 'Admin';
     }
@@ -392,8 +508,6 @@ extension JenisPeranExtension on JenisPeran {
         return JenisPeran.penulis;
       case 'editor':
         return JenisPeran.editor;
-      case 'percetakan':
-        return JenisPeran.percetakan;
       case 'admin':
         return JenisPeran.admin;
       default:

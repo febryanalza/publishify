@@ -349,7 +349,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
       case 'draft': return 'Draft';
       case 'diajukan': return 'Diajukan';
       case 'dalam_review': return 'Review';
-      case 'disetujui': return 'Disetujui';
+      case 'dalam_editing': return 'Dalam Editing';
+      case 'siap_terbit': return 'Siap Terbit';
       case 'diterbitkan': return 'Diterbitkan';
       case 'ditolak': return 'Ditolak';
       default: return status;
@@ -361,7 +362,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
       case 'draft': return AppTheme.greyDisabled;
       case 'diajukan': return Colors.blue;
       case 'dalam_review': return Colors.orange;
-      case 'disetujui': return Colors.green;
+      case 'dalam_editing': return Colors.amber;
+      case 'siap_terbit': return Colors.green;
       case 'diterbitkan': return AppTheme.primaryGreen;
       case 'ditolak': return Colors.red;
       default: return AppTheme.greyDisabled;

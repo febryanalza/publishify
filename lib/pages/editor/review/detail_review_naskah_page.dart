@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/editor/review_naskah_models.dart';
 import 'package:publishify/services/editor/unified_review_service.dart';
+import 'package:publishify/widgets/naskah_action_dialogs.dart';
 
 /// Halaman detail naskah yang akan direview
 class DetailReviewNaskahPage extends StatefulWidget {
@@ -672,6 +673,8 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
   }
 
   Widget _buildActionButtons(NaskahSubmission naskah) {
+    final isSiapTerbit = naskah.status == 'siap_terbit';
+    
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -722,8 +725,86 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
               ),
             ),
           ],
+          
+          // Tombol Ubah Status (untuk semua status kecuali diterbitkan)
+          if (naskah.status != 'diterbitkan') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _ubahStatusNaskah(naskah),
+                icon: const Icon(Icons.swap_horiz),
+                label: const Text('Ubah Status'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.orange,
+                  side: const BorderSide(color: Colors.orange),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+          
+          // Tombol Terbitkan (hanya untuk status siap_terbit)
+          if (isSiapTerbit) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _terbitkanNaskah(naskah),
+                icon: const Icon(Icons.publish),
+                label: const Text('Terbitkan Naskah'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  foregroundColor: AppTheme.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+  
+  /// Method untuk menampilkan dialog ubah status naskah
+  void _ubahStatusNaskah(NaskahSubmission naskah) {
+    showUbahStatusNaskahDialog(
+      context,
+      naskahId: naskah.id,
+      judulNaskah: naskah.judul,
+      statusSaatIni: naskah.status,
+      onResult: (sukses, pesan, statusBaru) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(pesan),
+            backgroundColor: sukses ? AppTheme.primaryGreen : AppTheme.errorRed,
+          ),
+        );
+        if (sukses) {
+          _loadDetail(); // Reload detail untuk refresh data
+        }
+      },
+    );
+  }
+  
+  /// Method untuk menampilkan dialog terbitkan naskah
+  void _terbitkanNaskah(NaskahSubmission naskah) {
+    showTerbitkanNaskahDialog(
+      context,
+      naskahId: naskah.id,
+      judulNaskah: naskah.judul,
+      jumlahHalamanSaatIni: naskah.jumlahHalaman,
+      onResult: (sukses, pesan) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(pesan),
+            backgroundColor: sukses ? AppTheme.primaryGreen : AppTheme.errorRed,
+          ),
+        );
+        if (sukses) {
+          _loadDetail(); // Reload detail untuk refresh data
+        }
+      },
     );
   }
 
