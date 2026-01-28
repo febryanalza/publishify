@@ -49,24 +49,31 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
       final response = await EditorApiService.ambilReviewSaya();
 
       if (response.sukses && response.data != null) {
-        _reviewList = response.data!;
-        
-        // Ekstrak semua feedback dari setiap review
-        _feedbackList = [];
-        for (final review in _reviewList) {
-          for (final feedback in review.feedback) {
-            _feedbackList.add(FeedbackDisplayItem(
-              feedback: feedback,
-              review: review,
-            ));
-          }
-        }
-        
-        // Urutkan berdasarkan tanggal terbaru
-        _feedbackList.sort((a, b) => 
-          b.feedback.dibuatPada.compareTo(a.feedback.dibuatPada));
-
         setState(() {
+          _reviewList = response.data!;
+          
+          // PERBAIKAN: Jika ada feedback di dalam review, ekstrak
+          // Jika tidak ada, tampilkan review-nya saja
+          _feedbackList = [];
+          
+          for (final review in _reviewList) {
+            if (review.feedback.isNotEmpty) {
+              // Ada feedback, ekstrak satu per satu
+              for (final feedback in review.feedback) {
+                _feedbackList.add(FeedbackDisplayItem(
+                  feedback: feedback,
+                  review: review,
+                ));
+              }
+            }
+            // CATATAN: Jika tidak ada feedback, tidak masalah
+            // Review akan ditampilkan di list review
+          }
+          
+          // Urutkan berdasarkan tanggal terbaru (updated review)
+          _feedbackList.sort((a, b) => 
+            b.feedback.dibuatPada.compareTo(a.feedback.dibuatPada));
+
           _isLoading = false;
         });
       } else {
@@ -83,26 +90,26 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
     }
   }
 
-  /// Filter feedback berdasarkan status review
-  List<FeedbackDisplayItem> _getFilteredFeedback(String? statusFilter) {
+  /// Filter review berdasarkan status
+  List<ReviewNaskah> _getFilteredReviews(String? statusFilter) {
     if (statusFilter == null) {
-      return _feedbackList;
+      return _reviewList;
     }
     
     if (statusFilter == 'menunggu') {
       // Review yang masih dalam proses
-      return _feedbackList.where((item) => 
-        item.review.status == StatusReview.ditugaskan ||
-        item.review.status == StatusReview.dalam_proses
+      return _reviewList.where((review) => 
+        review.status == StatusReview.ditugaskan ||
+        review.status == StatusReview.dalam_proses
       ).toList();
     } else if (statusFilter == 'selesai') {
       // Review yang sudah selesai
-      return _feedbackList.where((item) => 
-        item.review.status == StatusReview.selesai
+      return _reviewList.where((review) => 
+        review.status == StatusReview.selesai
       ).toList();
     }
     
-    return _feedbackList;
+    return _reviewList;
   }
 
   @override
@@ -198,27 +205,27 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
     return TabBarView(
       controller: _tabController,
       children: [
-        _buildFeedbackList(_getFilteredFeedback(null)),
-        _buildFeedbackList(_getFilteredFeedback('menunggu')),
-        _buildFeedbackList(_getFilteredFeedback('selesai')),
+        _buildReviewList(_getFilteredReviews(null)),
+        _buildReviewList(_getFilteredReviews('menunggu')),
+        _buildReviewList(_getFilteredReviews('selesai')),
       ],
     );
   }
 
-  Widget _buildFeedbackList(List<FeedbackDisplayItem> feedbacks) {
-    if (feedbacks.isEmpty) {
+  Widget _buildReviewList(List<ReviewNaskah> reviews) {
+    if (reviews.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.feedback_outlined,
+              Icons.assignment_outlined,
               size: 64,
               color: Colors.grey[400],
             ),
             const SizedBox(height: 16),
             Text(
-              'Belum ada feedback',
+              'Belum ada review',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -227,19 +234,9 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
             ),
             const SizedBox(height: 8),
             Text(
-              'Feedback yang Anda berikan akan muncul di sini',
+              'Review yang ditugaskan akan muncul di sini',
               style: TextStyle(color: Colors.grey[500]),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _showSelectReviewDialog,
-              icon: const Icon(Icons.add),
-              label: const Text('Tambah Feedback'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryGreen,
-                foregroundColor: Colors.white,
-              ),
             ),
           ],
         ),
@@ -250,15 +247,32 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
       onRefresh: _loadFeedbackData,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: feedbacks.length,
+        itemCount: reviews.length,
         itemBuilder: (context, index) {
-          return _buildFeedbackCard(feedbacks[index]);
+          return _buildReviewCard(reviews[index]);
         },
       ),
     );
   }
 
-  Widget _buildFeedbackCard(FeedbackDisplayItem item) {
+  Widget _buildReviewCard(ReviewNaskah review) {
+    // Hitung jumlah feedback
+    final feedbackCount = review.feedbackCount ?? 0;
+    
+    // Format tanggal
+    String tanggal = '';
+    try {
+      if (review.selesaiPada != null) {
+        tanggal = _formatDateTime(review.selesaiPada!);
+      } else if (review.dimulaiPada != null) {
+        tanggal = _formatDateTime(review.dimulaiPada!);
+      } else {
+        tanggal = _formatDateTime(review.ditugaskanPada);
+      }
+    } catch (e) {
+      tanggal = '-';
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -266,7 +280,10 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () => _showFeedbackDetail(item),
+        onTap: () {
+          // Navigate ke halaman detail review atau feedback
+          // TODO: Implement navigation
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -281,7 +298,7 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.review.naskah.judul,
+                          review.naskah.judul,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -289,7 +306,7 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Penulis: ${item.namaPenulis}',
+                          'Penulis: ${_getNamaPenulis(review)}',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
@@ -299,56 +316,60 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  _buildStatusBadge(item.review.status),
+                  _buildStatusBadge(review.status),
                 ],
               ),
 
               const SizedBox(height: 12),
 
-              // Info Bab/Halaman jika ada
-              if (item.feedback.bab != null || item.feedback.halaman != null)
+              // Catatan review jika ada
+              if (review.catatan != null && review.catatan!.isNotEmpty)
                 Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.bookmark, size: 14, color: Colors.blue[700]),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatBabHalaman(item.feedback.bab, item.feedback.halaman),
-                        style: TextStyle(
-                          color: Colors.blue[700],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                      Icon(Icons.note_outlined, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          review.catatan!,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-              // Feedback preview
-              Text(
-                item.feedback.komentar,
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 14,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-
-              // Footer
+              // Feedback counter
               Row(
                 children: [
+                  Icon(
+                    Icons.feedback_outlined,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$feedbackCount Feedback',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
                   Icon(
                     Icons.access_time,
                     size: 16,
@@ -356,25 +377,79 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    _formatDateTime(item.feedback.dibuatPada),
+                    tanggal,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[500],
                     ),
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => _showFeedbackDetail(item),
-                    child: Text(
-                      'Lihat Detail',
-                      style: TextStyle(color: AppTheme.primaryGreen),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (review.status != StatusReview.selesai)
+                    TextButton.icon(
+                      onPressed: () => _showAddFeedbackDialog(review),
+                      icon: const Icon(Icons.add_comment, size: 18),
+                      label: const Text('Tambah Feedback'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.primaryGreen,
+                      ),
                     ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () {
+                      // TODO: Navigate to detail
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryGreen,
+                      side: const BorderSide(color: AppTheme.primaryGreen),
+                    ),
+                    child: const Text('Lihat Detail'),
                   ),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  String _getNamaPenulis(ReviewNaskah review) {
+    final penulis = review.naskah.penulis;
+    if (penulis == null) return 'Tidak diketahui';
+    
+    if (penulis.profilPengguna != null) {
+      final profil = penulis.profilPengguna!;
+      final namaDepan = profil.namaDepan ?? '';
+      final namaBelakang = profil.namaBelakang ?? '';
+      final namaLengkap = '$namaDepan $namaBelakang'.trim();
+      return namaLengkap.isNotEmpty ? namaLengkap : penulis.email;
+    }
+    return penulis.email;
+  }
+
+  void _showAddFeedbackDialog(ReviewNaskah review) {
+    // TODO: Implement dialog untuk tambah feedback
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Tambah Feedback'),
+        content: Text('Untuk naskah: ${review.naskah.judul}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
       ),
     );
   }
@@ -417,17 +492,6 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
         ),
       ),
     );
-  }
-
-  String _formatBabHalaman(String? bab, int? halaman) {
-    List<String> parts = [];
-    if (bab != null && bab.isNotEmpty) {
-      parts.add('Bab: $bab');
-    }
-    if (halaman != null) {
-      parts.add('Hal: $halaman');
-    }
-    return parts.join(' • ');
   }
 
   String _formatDateTime(DateTime dateTime) {
@@ -550,12 +614,16 @@ class _EditorFeedbackPageState extends State<EditorFeedbackPage>
     }
   }
 
+  // NOTE: Method ini di-comment karena sekarang kita tampilkan review, bukan individual feedback
+  // Uncomment nanti ketika backend sudah mengirim array feedback dalam response
+  /*
   void _showFeedbackDetail(FeedbackDisplayItem item) {
     showDialog(
       context: context,
       builder: (context) => FeedbackDetailDialog(item: item),
     );
   }
+  */
 }
 
 /// Model untuk display feedback dengan info review terkait

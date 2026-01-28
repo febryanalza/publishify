@@ -6,33 +6,26 @@ import 'package:publishify/models/percetakan/percetakan_models.dart';
 import 'package:publishify/services/general/auth_service.dart';
 
 class PercetakanService {
-  static String get baseUrl => '${dotenv.env['BASE_URL'] ?? 'http://localhost:4000'}/api/percetakan';
+  static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
 
-  /// Ambil daftar pesanan dengan pagination dan filter
+  /// Ambil daftar pesanan untuk percetakan
+  /// Endpoint khusus untuk role percetakan: GET /api/percetakan/pesanan/percetakan
+  /// Parameter status: 'baru' | 'produksi' | 'pengiriman' | 'selesai'
   static Future<PesananListResponse> ambilDaftarPesanan({
-    int halaman = 1,
-    int limit = 20,
     String? status,
-    String? cari,
   }) async {
     try {
       final token = await AuthService.getAccessToken();
       if (token == null) throw Exception('Token tidak ditemukan');
 
-      final Map<String, String> queryParams = {
-        'halaman': halaman.toString(),
-        'limit': limit.toString(),
-      };
-
+      // Build URI dengan query parameter status (opsional)
+      final Map<String, String> queryParams = {};
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
 
-      if (cari != null && cari.isNotEmpty) {
-        queryParams['cari'] = cari;
-      }
-
-      final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/api/percetakan/pesanan/percetakan')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(
         uri,
@@ -62,7 +55,7 @@ class PercetakanService {
       if (token == null) throw Exception('Token tidak ditemukan');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/$idPesanan'),
+        Uri.parse('$baseUrl/api/percetakan/$idPesanan'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -93,7 +86,7 @@ class PercetakanService {
       if (token == null) throw Exception('Token tidak ditemukan');
 
       final Map<String, dynamic> requestData = {
-        'status': statusBaru,
+        'statusBaru': statusBaru,
       };
 
       if (catatan != null && catatan.isNotEmpty) {
@@ -101,7 +94,7 @@ class PercetakanService {
       }
 
       final response = await http.put(
-        Uri.parse('$baseUrl/$idPesanan/status'),
+        Uri.parse('$baseUrl/api/percetakan/$idPesanan/status'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -151,7 +144,7 @@ class PercetakanService {
       }
 
       final response = await http.put(
-        Uri.parse('$baseUrl/$idPesanan/konfirmasi'),
+        Uri.parse('$baseUrl/api/percetakan/$idPesanan/konfirmasi'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -172,6 +165,61 @@ class PercetakanService {
     }
   }
 
+  /// Buat data pengiriman untuk pesanan
+  /// POST /api/percetakan/:id/pengiriman
+  static Future<PesananDetailResponse> buatPengiriman(
+    String idPesanan, {
+    required String alamatTujuan,
+    required String namaPenerima,
+    required String teleponPenerima,
+    String? namaEkspedisi,
+    String? nomorResi,
+    String? catatan,
+  }) async {
+    try {
+      final token = await AuthService.getAccessToken();
+      if (token == null) throw Exception('Token tidak ditemukan');
+
+      final Map<String, dynamic> requestData = {
+        'alamatTujuan': alamatTujuan,
+        'namaPenerima': namaPenerima,
+        'teleponPenerima': teleponPenerima,
+      };
+
+      if (namaEkspedisi != null && namaEkspedisi.isNotEmpty) {
+        requestData['namaEkspedisi'] = namaEkspedisi;
+      }
+
+      if (nomorResi != null && nomorResi.isNotEmpty) {
+        requestData['nomorResi'] = nomorResi;
+      }
+
+      if (catatan != null && catatan.isNotEmpty) {
+        requestData['catatan'] = catatan;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/percetakan/$idPesanan/pengiriman'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(requestData),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return PesananDetailResponse.fromJson(responseData);
+      } else {
+        throw Exception('HTTP Error ${response.statusCode}: ${response.body}');
+      }
+    } on SocketException {
+      throw Exception('Tidak ada koneksi internet');
+    } catch (e) {
+      throw Exception('Terjadi kesalahan: ${e.toString()}');
+    }
+  }
+
   /// Ambil statistik percetakan
   static Future<StatsResponse> ambilStatistik() async {
     try {
@@ -179,7 +227,7 @@ class PercetakanService {
       if (token == null) throw Exception('Token tidak ditemukan');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/statistik'),
+        Uri.parse('$baseUrl/api/percetakan/statistik'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

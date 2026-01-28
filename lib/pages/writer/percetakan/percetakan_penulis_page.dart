@@ -44,7 +44,6 @@ class _PercetakanPenulisPageState extends State<PercetakanPenulisPage> {
     });
 
     final response = await CetakService.ambilPesananSaya(
-      limit: 50,
       status: _selectedFilter == 'semua' ? null : _selectedFilter,
     );
 

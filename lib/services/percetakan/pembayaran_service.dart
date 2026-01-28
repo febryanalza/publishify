@@ -11,36 +11,27 @@ class PembayaranService {
   static String get baseUrl =>
       '${dotenv.env['BASE_URL'] ?? 'http://localhost:4000'}/api/pembayaran';
 
-  /// Ambil daftar pembayaran dengan pagination dan filter
+  /// Ambil daftar pembayaran untuk percetakan user
+  /// Simplified version untuk menghindari backend validation issues
   static Future<PembayaranListResponse> ambilDaftarPembayaran({
-    int halaman = 1,
-    int limit = 20,
     String? status,
-    String? metodePembayaran,
-    String? nomorTransaksi,
   }) async {
     try {
       final token = await AuthService.getAccessToken();
       if (token == null) throw Exception('Token tidak ditemukan');
 
-      final Map<String, String> queryParams = {
-        'halaman': halaman.toString(),
-        'limit': limit.toString(),
-      };
+      // Minimal query params untuk menghindari backend validation error
+      final Map<String, String> queryParams = {};
 
+      // Only add status filter if provided
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
 
-      if (metodePembayaran != null && metodePembayaran.isNotEmpty) {
-        queryParams['metodePembayaran'] = metodePembayaran;
-      }
-
-      if (nomorTransaksi != null && nomorTransaksi.isNotEmpty) {
-        queryParams['nomorTransaksi'] = nomorTransaksi;
-      }
-
-      final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+      // Build URI with minimal params
+      final uri = queryParams.isEmpty 
+        ? Uri.parse(baseUrl)
+        : Uri.parse(baseUrl).replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
@@ -53,12 +44,22 @@ class PembayaranService {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         return PembayaranListResponse.fromJson(responseData);
+      } else if (response.statusCode == 500) {
+        // Handle internal server error gracefully
+        throw Exception('Server sedang bermasalah. Silakan coba lagi nanti.');
       } else {
-        throw Exception('HTTP Error ${response.statusCode}: ${response.body}');
+        final errorData = json.decode(response.body);
+        final errorMessage = errorData['pesan'] ?? errorData['message'] ?? 'Terjadi kesalahan';
+        throw Exception(errorMessage);
       }
     } on SocketException {
       throw Exception('Tidak ada koneksi internet');
+    } on FormatException {
+      throw Exception('Format data tidak valid');
     } catch (e) {
+      if (e.toString().contains('Exception:')) {
+        rethrow; // Re-throw our custom exceptions
+      }
       throw Exception('Terjadi kesalahan: ${e.toString()}');
     }
   }

@@ -1,4 +1,4 @@
-/// Model untuk request buat pesanan cetak
+/// Model untuk request buat pesanan cetak (OLD - deprecated)
 class BuatPesananRequest {
   final String idNaskah;
   final int jumlah;
@@ -27,6 +27,52 @@ class BuatPesananRequest {
       'jenisCover': jenisCover,
       'finishingTambahan': finishingTambahan,
       if (catatan != null) 'catatan': catatan,
+    };
+  }
+}
+
+/// Model untuk request buat pesanan cetak baru (endpoint simplified)
+/// POST /api/percetakan/pesanan/baru
+class BuatPesananBaruRequest {
+  final String idNaskah;
+  final String idPercetakan;
+  final int jumlah;
+  final String formatKertas;
+  final String jenisKertas;
+  final String jenisCover;
+  final List<String>? finishingTambahan;
+  final String? catatan;
+  final String alamatPengiriman;
+  final String namaPenerima;
+  final String teleponPenerima;
+
+  BuatPesananBaruRequest({
+    required this.idNaskah,
+    required this.idPercetakan,
+    required this.jumlah,
+    required this.formatKertas,
+    required this.jenisKertas,
+    required this.jenisCover,
+    this.finishingTambahan,
+    this.catatan,
+    required this.alamatPengiriman,
+    required this.namaPenerima,
+    required this.teleponPenerima,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'idNaskah': idNaskah,
+      'idPercetakan': idPercetakan,
+      'jumlah': jumlah,
+      'formatKertas': formatKertas,
+      'jenisKertas': jenisKertas,
+      'jenisCover': jenisCover,
+      if (finishingTambahan != null && finishingTambahan!.isNotEmpty) 'finishingTambahan': finishingTambahan,
+      if (catatan != null && catatan!.isNotEmpty) 'catatan': catatan,
+      'alamatPengiriman': alamatPengiriman,
+      'namaPenerima': namaPenerima,
+      'teleponPenerima': teleponPenerima,
     };
   }
 }
@@ -75,25 +121,30 @@ class PesananCetak {
 
   factory PesananCetak.fromJson(Map<String, dynamic> json) {
     return PesananCetak(
-      id: json['id'] as String,
-      idNaskah: json['idNaskah'] as String,
-      idPemesan: json['idPemesan'] as String,
-      idPercetakan: json['idPercetakan'] as String?,
-      nomorPesanan: json['nomorPesanan'] as String,
-      jumlah: json['jumlah'] as int,
-      formatKertas: json['formatKertas'] as String,
-      jenisKertas: json['jenisKertas'] as String,
-      jenisCover: json['jenisCover'] as String,
+      id: (json['id'] ?? '').toString(),
+      idNaskah: (json['idNaskah'] ?? '').toString(),
+      idPemesan: (json['idPemesan'] ?? '').toString(),
+      idPercetakan: json['idPercetakan']?.toString(),
+      nomorPesanan: (json['nomorPesanan'] ?? '').toString(),
+      jumlah: (json['jumlah'] is int) 
+          ? json['jumlah'] 
+          : int.tryParse(json['jumlah']?.toString() ?? '0') ?? 0,
+      formatKertas: (json['formatKertas'] ?? '').toString(),
+      jenisKertas: (json['jenisKertas'] ?? '').toString(),
+      jenisCover: (json['jenisCover'] ?? '').toString(),
       finishingTambahan: (json['finishingTambahan'] as List<dynamic>?)
-              ?.map((e) => e as String)
+              ?.map((e) => e?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
               .toList() ??
           [],
-      catatan: json['catatan'] as String?,
-      hargaTotal: json['hargaTotal']?.toString() ?? '0',
-      status: json['status'] as String,
-      tanggalPesan: DateTime.parse(json['tanggalPesan'] as String),
+      catatan: json['catatan']?.toString(),
+      hargaTotal: (json['hargaTotal'] ?? '0').toString(),
+      status: (json['status'] ?? 'tertunda').toString(),
+      tanggalPesan: json['tanggalPesan'] != null
+          ? DateTime.parse(json['tanggalPesan'].toString())
+          : DateTime.now(),
       tanggalSelesai: json['tanggalSelesai'] != null
-          ? DateTime.parse(json['tanggalSelesai'] as String)
+          ? DateTime.tryParse(json['tanggalSelesai'].toString())
           : null,
       naskah: json['naskah'] != null
           ? NaskahInfo.fromJson(json['naskah'] as Map<String, dynamic>)
@@ -154,11 +205,13 @@ class NaskahInfo {
 
   factory NaskahInfo.fromJson(Map<String, dynamic> json) {
     return NaskahInfo(
-      id: json['id'] as String,
-      judul: json['judul'] as String,
-      isbn: json['isbn'] as String?,
-      jumlahHalaman: json['jumlahHalaman'] as int?,
-      urlSampul: json['urlSampul'] as String?,
+      id: (json['id'] ?? '').toString(),
+      judul: (json['judul'] ?? 'Tanpa Judul').toString(),
+      isbn: json['isbn']?.toString(),
+      jumlahHalaman: json['jumlahHalaman'] is int
+          ? json['jumlahHalaman']
+          : int.tryParse(json['jumlahHalaman']?.toString() ?? ''),
+      urlSampul: json['urlSampul']?.toString(),
     );
   }
 }
@@ -179,9 +232,9 @@ class PemesanInfo {
 
   factory PemesanInfo.fromJson(Map<String, dynamic> json) {
     return PemesanInfo(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      telepon: json['telepon'] as String?,
+      id: (json['id'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      telepon: json['telepon']?.toString(),
       profilPengguna: json['profilPengguna'] != null
           ? ProfilInfo.fromJson(json['profilPengguna'] as Map<String, dynamic>)
           : null,
@@ -208,8 +261,8 @@ class ProfilInfo {
 
   factory ProfilInfo.fromJson(Map<String, dynamic> json) {
     return ProfilInfo(
-      namaDepan: json['namaDepan'] as String?,
-      namaBelakang: json['namaBelakang'] as String?,
+      namaDepan: json['namaDepan']?.toString(),
+      namaBelakang: json['namaBelakang']?.toString(),
     );
   }
 }
@@ -240,15 +293,15 @@ class PengirimanInfo {
 
   factory PengirimanInfo.fromJson(Map<String, dynamic> json) {
     return PengirimanInfo(
-      id: json['id'] as String,
-      namaEkspedisi: json['namaEkspedisi'] as String?,
-      nomorResi: json['nomorResi'] as String?,
-      status: json['status'] as String?,
-      alamatTujuan: json['alamatTujuan'] as String?,
-      kotaTujuan: json['kotaTujuan'] as String?,
-      provinsiTujuan: json['provinsiTujuan'] as String?,
-      kodePosTujuan: json['kodePosTujuan'] as String?,
-      estimasiTiba: json['estimasiTiba'] as String?,
+      id: (json['id'] ?? '').toString(),
+      namaEkspedisi: json['namaEkspedisi']?.toString(),
+      nomorResi: json['nomorResi']?.toString(),
+      status: json['status']?.toString(),
+      alamatTujuan: json['alamatTujuan']?.toString(),
+      kotaTujuan: json['kotaTujuan']?.toString(),
+      provinsiTujuan: json['provinsiTujuan']?.toString(),
+      kodePosTujuan: json['kodePosTujuan']?.toString(),
+      estimasiTiba: json['estimasiTiba']?.toString(),
     );
   }
 }
@@ -344,23 +397,131 @@ class PaginationMetadata {
   }
 }
 
+/// Model untuk info tarif percetakan
+class TarifInfo {
+  final String id;
+  final String namaKombinasi;
+  final int hargaKertasA4;
+  final int hargaKertasA5;
+  final int hargaSoftcover;
+  final int hargaHardcover;
+  final int biayaJilid;
+  final int minimumPesanan;
+
+  TarifInfo({
+    required this.id,
+    required this.namaKombinasi,
+    required this.hargaKertasA4,
+    required this.hargaKertasA5,
+    required this.hargaSoftcover,
+    required this.hargaHardcover,
+    required this.biayaJilid,
+    required this.minimumPesanan,
+  });
+
+  factory TarifInfo.fromJson(Map<String, dynamic> json) {
+    return TarifInfo(
+      id: json['id']?.toString() ?? '',
+      namaKombinasi: json['namaKombinasi']?.toString() ?? '',
+      hargaKertasA4: int.tryParse(json['hargaKertasA4']?.toString() ?? '0') ?? 0,
+      hargaKertasA5: int.tryParse(json['hargaKertasA5']?.toString() ?? '0') ?? 0,
+      hargaSoftcover: int.tryParse(json['hargaSoftcover']?.toString() ?? '0') ?? 0,
+      hargaHardcover: int.tryParse(json['hargaHardcover']?.toString() ?? '0') ?? 0,
+      biayaJilid: int.tryParse(json['biayaJilid']?.toString() ?? '0') ?? 0,
+      minimumPesanan: int.tryParse(json['minimumPesanan']?.toString() ?? '0') ?? 0,
+    );
+  }
+}
+
+/// Model untuk info percetakan
+class PercetakanInfo {
+  final String id;
+  final String? email;
+  final String nama;
+  final String? alamat;
+  final String? kota;
+  final String? provinsi;
+  final TarifInfo? tarifAktif;
+
+  PercetakanInfo({
+    required this.id,
+    this.email,
+    required this.nama,
+    this.alamat,
+    this.kota,
+    this.provinsi,
+    this.tarifAktif,
+  });
+
+  factory PercetakanInfo.fromJson(Map<String, dynamic> json) {
+    return PercetakanInfo(
+      id: json['id']?.toString() ?? '',
+      email: json['email']?.toString(),
+      nama: json['nama']?.toString() ?? '',
+      alamat: json['alamat']?.toString(),
+      kota: json['kota']?.toString(),
+      provinsi: json['provinsi']?.toString(),
+      tarifAktif: json['tarifAktif'] != null
+          ? TarifInfo.fromJson(json['tarifAktif'])
+          : null,
+    );
+  }
+}
+
+/// Response untuk daftar percetakan
+class PercetakanListResponse {
+  final bool sukses;
+  final String pesan;
+  final List<PercetakanInfo> data;
+  final int total;
+
+  PercetakanListResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data = const [],
+    this.total = 0,
+  });
+
+  factory PercetakanListResponse.fromJson(Map<String, dynamic> json) {
+    final dataList = json['data'] as List<dynamic>?;
+    return PercetakanListResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan']?.toString() ?? '',
+      data: dataList?.map((e) => PercetakanInfo.fromJson(e)).toList() ?? [],
+      total: json['total'] ?? dataList?.length ?? 0,
+    );
+  }
+}
+
 /// Constants untuk opsi cetak
 class CetakOptions {
-  static const List<String> formatKertas = ['A4', 'A5', 'B5', 'Letter', 'Custom'];
+  static const List<String> formatKertas = ['A4', 'A5', 'B5'];
   
+  // ⚠️ HARUS MATCH dengan backend enum!
   static const List<String> jenisKertas = [
-    'HVS 70gr',
-    'HVS 80gr',
-    'Art Paper 120gr',
-    'Art Paper 150gr',
-    'Bookpaper',
+    'HVS',
+    'BOOKPAPER',
+    'ART_PAPER',
   ];
   
+  // Label untuk display di UI
+  static const Map<String, String> jenisKertasLabel = {
+    'HVS': 'HVS',
+    'BOOKPAPER': 'Bookpaper',
+    'ART_PAPER': 'Art Paper',
+  };
+  
+  // ⚠️ HARUS MATCH dengan backend enum!
   static const List<String> jenisCover = [
-    'Soft Cover',
-    'Hard Cover',
-    'Board Cover',
+    'SOFTCOVER',
+    'HARDCOVER',
   ];
+  
+  // Label untuk display di UI
+  static const Map<String, String> jenisCoverLabel = {
+    'SOFTCOVER': 'Soft Cover',
+    'HARDCOVER': 'Hard Cover',
+  };
   
   static const List<String> finishingTambahan = [
     'Laminasi Glossy',

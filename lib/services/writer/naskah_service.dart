@@ -3,9 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:publishify/models/writer/naskah_models.dart';
 import 'package:publishify/services/general/auth_service.dart';
+import 'package:logger/logger.dart';
 
 /// Naskah Service
 /// Handles all manuscript (naskah) related API calls
+
+final Logger _logger = Logger();
 class NaskahService {
   // Get base URL from .env
   static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
@@ -61,42 +64,54 @@ class NaskahService {
     }
   }
 
-  /// Get count of manuscripts by status
+  /// Get count of manuscripts by status from statistik endpoint
   static Future<Map<String, int>> getStatusCount() async {
     try {
-      final response = await getNaskahSaya(limit: 100); // Get all to count
-      
-      if (!response.sukses || response.data == null) {
+      // Get token
+      final token = await AuthService.getAccessToken();
+      if (token == null) {
+        throw Exception('Token tidak ditemukan');
+      }
+
+      // Call statistik endpoint
+      final response = await http.get(
+        Uri.parse('$baseUrl/naskah/statistik'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      _logger.d('GET /naskah/statistik - Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final data = jsonResponse['data'];
+        final perStatus = data['perStatus'] as Map<String, dynamic>? ?? {};
+
+        // Map backend status to frontend labels
+        return {
+          'draft': perStatus['draft'] ?? 0,
+          'dalam_review': perStatus['dalam_review'] ?? 0,
+          'perlu_revisi': perStatus['perlu_revisi'] ?? 0,
+          'diterbitkan': perStatus['diterbitkan'] ?? 0,
+        };
+      } else {
+        _logger.e('Failed to get status count: ${response.statusCode}');
         return {
           'draft': 0,
-          'review': 0,
-          'revision': 0,
-          'published': 0,
+          'dalam_review': 0,
+          'perlu_revisi': 0,
+          'diterbitkan': 0,
         };
       }
-
-      // Count by status
-      final Map<String, int> statusCount = {
-        'draft': 0,
-        'review': 0,
-        'revision': 0,
-        'published': 0,
-      };
-
-      for (var naskah in response.data!) {
-        final status = naskah.status.toLowerCase();
-        if (statusCount.containsKey(status)) {
-          statusCount[status] = statusCount[status]! + 1;
-        }
-      }
-
-      return statusCount;
     } catch (e) {
+      _logger.e('Error getting status count: $e');
       return {
         'draft': 0,
-        'review': 0,
-        'revision': 0,
-        'published': 0,
+        'dalam_review': 0,
+        'perlu_revisi': 0,
+        'diterbitkan': 0,
       };
     }
   }

@@ -56,11 +56,18 @@ class RegisterData {
   final String id;
   final String email;
   final String tokenVerifikasi;
+  // Optional: jika backend mengirim token langsung saat registrasi
+  final String? accessToken;
+  final String? refreshToken;
+  final UserData? pengguna;
 
   RegisterData({
     required this.id,
     required this.email,
     required this.tokenVerifikasi,
+    this.accessToken,
+    this.refreshToken,
+    this.pengguna,
   });
 
   factory RegisterData.fromJson(Map<String, dynamic> json) {
@@ -68,6 +75,9 @@ class RegisterData {
       id: json['id'] ?? '',
       email: json['email'] ?? '',
       tokenVerifikasi: json['tokenVerifikasi'] ?? '',
+      accessToken: json['accessToken'],
+      refreshToken: json['refreshToken'],
+      pengguna: json['pengguna'] != null ? UserData.fromJson(json['pengguna']) : null,
     );
   }
 
@@ -76,6 +86,9 @@ class RegisterData {
       'id': id,
       'email': email,
       'tokenVerifikasi': tokenVerifikasi,
+      if (accessToken != null) 'accessToken': accessToken,
+      if (refreshToken != null) 'refreshToken': refreshToken,
+      if (pengguna != null) 'pengguna': pengguna!.toJson(),
     };
   }
 }

@@ -43,13 +43,37 @@ class AuthService {
       final responseData = jsonDecode(response.body);
       final registerResponse = RegisterResponse.fromJson(responseData);
 
-      // If registration successful, save to SharedPreferences
+      // If registration successful
       if (registerResponse.sukses && registerResponse.data != null) {
-        await _saveUserData(registerResponse.data!);
+        // Cek apakah backend sudah mengirim token langsung
+        if (registerResponse.data!.accessToken != null && 
+            registerResponse.data!.refreshToken != null &&
+            registerResponse.data!.pengguna != null) {
+          // Backend mengirim token langsung, simpan seperti login
+          await _saveLoginDataFromRegister(registerResponse.data!);
+        } else {
+          // Backend tidak mengirim token, lakukan auto-login
+          logger.i('Token tidak dikirim dari registrasi, melakukan auto-login...');
+          
+          final loginResponse = await login(
+            LoginRequest(
+              email: request.email,
+              kataSandi: request.kataSandi,
+            ),
+          );
+          
+          if (!loginResponse.sukses) {
+            logger.e('Auto-login gagal setelah registrasi');
+            // Tetap simpan data user untuk verifikasi email nanti
+            await _saveUserData(registerResponse.data!);
+          }
+          // Login data sudah disimpan oleh method login()
+        }
       }
 
       return registerResponse;
     } catch (e) {
+      logger.e('Register error: $e');
       // Return error response
       return RegisterResponse(
         sukses: false,
@@ -99,33 +123,101 @@ class AuthService {
     await prefs.setBool(_keyIsLoggedIn, false); // Not logged in yet, need verification
   }
 
+  /// Save login data from register response (jika backend mengirim token langsung)
+  static Future<void> _saveLoginDataFromRegister(RegisterData data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save tokens
+      await prefs.setString(_keyAccessToken, data.accessToken!);
+      await prefs.setString(_keyRefreshToken, data.refreshToken!);
+      
+      // Save user data
+      await prefs.setString(_keyUserId, data.pengguna!.id);
+      await prefs.setString(_keyUserEmail, data.pengguna!.email);
+      
+      // Save roles - pastikan konversi ke List<String>
+      final roles = data.pengguna!.getActiveRoles();
+      await prefs.setStringList(_keyPeran, roles);
+      
+      await prefs.setBool(_keyTerverifikasi, data.pengguna!.terverifikasi);
+      
+      // Save profile data if available
+      if (data.pengguna!.profilPengguna != null) {
+        final profil = data.pengguna!.profilPengguna!;
+        if (profil.namaDepan.isNotEmpty) {
+          await prefs.setString(_keyNamaDepan, profil.namaDepan);
+        }
+        if (profil.namaBelakang.isNotEmpty) {
+          await prefs.setString(_keyNamaBelakang, profil.namaBelakang);
+        }
+        if (profil.namaTampilan.isNotEmpty) {
+          await prefs.setString(_keyNamaTampilan, profil.namaTampilan);
+        }
+      }
+      
+      // Save complete user data as JSON
+      final loginDataJson = {
+        'accessToken': data.accessToken,
+        'refreshToken': data.refreshToken,
+        'pengguna': data.pengguna!.toJson(),
+      };
+      await prefs.setString(_keyUserData, jsonEncode(loginDataJson));
+      
+      // Mark as logged in
+      await prefs.setBool(_keyIsLoggedIn, true);
+      
+      logger.i('Login data dari registrasi berhasil disimpan');
+    } catch (e) {
+      logger.e('Error saving login data from register: $e');
+      rethrow;
+    }
+  }
+
   /// Save login data to SharedPreferences
   static Future<void> _saveLoginData(LoginData data) async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Save tokens
-    await prefs.setString(_keyAccessToken, data.accessToken);
-    await prefs.setString(_keyRefreshToken, data.refreshToken);
-    
-    // Save user data
-    await prefs.setString(_keyUserId, data.pengguna.id);
-    await prefs.setString(_keyUserEmail, data.pengguna.email);
-    await prefs.setStringList(_keyPeran, data.pengguna.peran);
-    await prefs.setBool(_keyTerverifikasi, data.pengguna.terverifikasi);
-    
-    // Save profile data if available
-    if (data.pengguna.profilPengguna != null) {
-      final profil = data.pengguna.profilPengguna!;
-      await prefs.setString(_keyNamaDepan, profil.namaDepan);
-      await prefs.setString(_keyNamaBelakang, profil.namaBelakang);
-      await prefs.setString(_keyNamaTampilan, profil.namaTampilan);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save tokens
+      await prefs.setString(_keyAccessToken, data.accessToken);
+      await prefs.setString(_keyRefreshToken, data.refreshToken);
+      
+      // Save user data
+      await prefs.setString(_keyUserId, data.pengguna.id);
+      await prefs.setString(_keyUserEmail, data.pengguna.email);
+      
+      // Save roles - gunakan getActiveRoles untuk konsistensi
+      final roles = data.pengguna.getActiveRoles();
+      await prefs.setStringList(_keyPeran, roles);
+      
+      await prefs.setBool(_keyTerverifikasi, data.pengguna.terverifikasi);
+      
+      // Save profile data if available
+      if (data.pengguna.profilPengguna != null) {
+        final profil = data.pengguna.profilPengguna!;
+        if (profil.namaDepan.isNotEmpty) {
+          await prefs.setString(_keyNamaDepan, profil.namaDepan);
+        }
+        if (profil.namaBelakang.isNotEmpty) {
+          await prefs.setString(_keyNamaBelakang, profil.namaBelakang);
+        }
+        if (profil.namaTampilan.isNotEmpty) {
+          await prefs.setString(_keyNamaTampilan, profil.namaTampilan);
+        }
+      }
+      
+      // Save complete user data as JSON for easy retrieval
+      await prefs.setString(_keyUserData, jsonEncode(data.toJson()));
+      
+      // Mark as logged in
+      await prefs.setBool(_keyIsLoggedIn, true);
+      
+      logger.i('Login data berhasil disimpan');
+    } catch (e) {
+      logger.e('Error saving login data: $e');
+      rethrow;
     }
-    
-    // Save complete user data as JSON for easy retrieval
-    await prefs.setString(_keyUserData, jsonEncode(data.toJson()));
-    
-    // Mark as logged in
-    await prefs.setBool(_keyIsLoggedIn, true);
   }
 
   /// Get saved user ID

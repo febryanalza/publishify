@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
 import 'package:publishify/models/writer/print_item.dart';
-import 'package:publishify/widgets/network_image_widget.dart';
+// import 'package:publishify/widgets/network_image_widget.dart';
 
 class PrintCard extends StatelessWidget {
   final PrintItem item;

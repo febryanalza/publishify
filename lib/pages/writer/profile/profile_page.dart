@@ -322,30 +322,28 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           
           // Stats Row
+          // Stats Row - 2 columns layout
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              StatItem(
-                count: _profile.totalBooks,
-                label: 'Buku',
+              // Buku stat - Left side
+              Expanded(
+                child: StatItem(
+                  count: _profile.totalBooks,
+                  label: 'Buku',
+                ),
               ),
+              // Separator
               Container(
                 width: 1,
                 height: 40,
                 color: AppTheme.greyLight,
               ),
-              StatItem(
-                count: _profile.totalRating,
-                label: 'Rating',
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: AppTheme.greyLight,
-              ),
-              StatItem(
-                count: _profile.totalViewers,
-                label: 'Viewers',
+              // Viewers stat - Right side
+              Expanded(
+                child: StatItem(
+                  count: _profile.totalViewers,
+                  label: 'Viewers',
+                ),
               ),
             ],
           ),

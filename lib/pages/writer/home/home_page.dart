@@ -90,9 +90,9 @@ class _HomePageState extends State<HomePage> {
         _books = [];
         _statusCount = {
           'draft': 0,
-          'review': 0,
-          'revision': 0,
-          'published': 0,
+          'dalam_review': 0,
+          'perlu_revisi': 0,
+          'diterbitkan': 0,
         };
       }
     } catch (e) {
@@ -100,9 +100,9 @@ class _HomePageState extends State<HomePage> {
       _books = [];
       _statusCount = {
         'draft': 0,
-        'review': 0,
-        'revision': 0,
-        'published': 0,
+        'dalam_review': 0,
+        'perlu_revisi': 0,
+        'diterbitkan': 0,
       };
     }
   }
@@ -280,21 +280,21 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(width: 12),
               StatusCard(
+                title: 'Review',
+                count: _statusCount['dalam_review'] ?? 0,
+                onTap: () => _filterByStatus('dalam_review'),
+              ),
+              const SizedBox(width: 12),
+              StatusCard(
                 title: 'Revisi',
-                count: _statusCount['revisi'] ?? 0,
-                onTap: () => _filterByStatus('revisi'),
+                count: _statusCount['perlu_revisi'] ?? 0,
+                onTap: () => _filterByStatus('perlu_revisi'),
               ),
               const SizedBox(width: 12),
               StatusCard(
-                title: 'Cetak',
-                count: _statusCount['cetak'] ?? 0,
-                onTap: () => _filterByStatus('cetak'),
-              ),
-              const SizedBox(width: 12),
-              StatusCard(
-                title: 'Publish',
-                count: _statusCount['publish'] ?? 0,
-                onTap: () => _filterByStatus('publish'),
+                title: 'Terbit',
+                count: _statusCount['diterbitkan'] ?? 0,
+                onTap: () => _filterByStatus('diterbitkan'),
               ),
             ],
           ),

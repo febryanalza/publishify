@@ -173,21 +173,6 @@ class _DetailReviewNaskahPageState extends State<DetailReviewNaskahPage> {
   }
 
   Widget _buildHeaderSection(NaskahSubmission naskah) {
-    Color statusColor;
-    switch (naskah.status) {
-      case 'menunggu_review':
-        statusColor = Colors.orange;
-        break;
-      case 'dalam_review':
-        statusColor = Colors.blue;
-        break;
-      case 'selesai_review':
-        statusColor = AppTheme.primaryGreen;
-        break;
-      default:
-        statusColor = AppTheme.greyMedium;
-    }
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(

@@ -43,10 +43,8 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
         statusFilter = 'berhasil';
       }
 
-      // Ambil data pembayaran dari server
+      // Ambil data pembayaran dari server (simplified)
       final response = await PembayaranService.ambilDaftarPembayaran(
-        halaman: 1,
-        limit: 50,
         status: statusFilter,
       );
 
@@ -66,8 +64,15 @@ class _PercetakanPaymentsPageState extends State<PercetakanPaymentsPage> {
       }
     } catch (e) {
       if (!mounted) return;
+      
+      // Extract clean error message
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.replaceFirst('Exception: ', '');
+      }
+      
       setState(() {
-        _error = e.toString();
+        _error = errorMessage;
         _isLoading = false;
       });
     }

@@ -28,18 +28,16 @@ class _PercetakanDashboardPageState extends State<PercetakanDashboardPage> {
     });
 
     try {
-      // Ambil pesanan terbaru dari server
-      final ordersResponse = await PercetakanService.ambilDaftarPesanan(
-        halaman: 1,
-        limit: 5, // Ambil 5 pesanan terbaru untuk dashboard
-      );
+      // Ambil semua pesanan dari server (tanpa pagination)
+      final ordersResponse = await PercetakanService.ambilDaftarPesanan();
 
       if (!mounted) return;
 
       setState(() {
-        // Set pesanan terbaru dari server
+        // Set pesanan dari server
         if (ordersResponse.sukses && ordersResponse.data != null) {
-          _recentOrders = ordersResponse.data!;
+          // Ambil 5 pesanan terbaru untuk dashboard
+          _recentOrders = ordersResponse.data!.take(5).toList();
         }
 
         _isLoading = false;

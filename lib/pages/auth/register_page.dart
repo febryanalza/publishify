@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:publishify/utils/theme.dart';
-import 'package:publishify/pages/auth/success_page.dart';
 import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/models/general/auth_models.dart';
+import 'package:publishify/pages/main_layout.dart';
+import 'package:publishify/pages/editor/editor_main_page.dart';
+import 'package:publishify/pages/percetakan/percetakan_main_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -102,16 +104,67 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
         if (response.sukses) {
-          // Navigate to success page
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SuccessPage(
-                userName: '${_namaDepanController.text} ${_namaBelakangController.text}',
-                message: 'Akun berhasil dibuat! Silakan cek email Anda untuk verifikasi.',
-              ),
-            ),
-          );
+          // Cek apakah user sudah login (auto-login berhasil)
+          final isLoggedIn = await AuthService.isLoggedIn();
+          
+          if (isLoggedIn) {
+            // Auto-login berhasil, navigate ke dashboard sesuai role
+            final primaryRole = await AuthService.getPrimaryRole();
+            final userName = '${_namaDepanController.text} ${_namaBelakangController.text}';
+            
+            Widget destinationPage;
+            
+            if (primaryRole == 'penulis') {
+              destinationPage = MainLayout(
+                initialIndex: 0,
+                userName: userName,
+              );
+            } else if (primaryRole == 'editor') {
+              destinationPage = const EditorMainPage(initialIndex: 0);
+            } else if (primaryRole == 'percetakan') {
+              destinationPage = const PercetakanMainPage(initialIndex: 0);
+            } else {
+              // Default ke penulis
+              destinationPage = MainLayout(
+                initialIndex: 0,
+                userName: userName,
+              );
+            }
+            
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => destinationPage),
+              );
+              
+              // Show welcome message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Selamat datang, $userName! Akun Anda berhasil dibuat.'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } else {
+            // Auto-login gagal, tampilkan pesan sukses dan arahkan ke login
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(response.pesan),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+              
+              // Navigate to login after delay
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
+              });
+            }
+          }
         } else {
           // Show error message
           ScaffoldMessenger.of(context).showSnackBar(

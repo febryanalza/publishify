@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../models/writer/naskah_models.dart';
+import '../../../models/writer/cetak_models.dart';
 import '../../../services/writer/naskah_service.dart';
-import '../../../services/writer/percetakan_service.dart';
+import '../../../services/writer/cetak_service.dart';
 import '../../../utils/theme.dart';
 
 class PrintPage extends StatefulWidget {
@@ -449,7 +450,7 @@ class _PrintPageState extends State<PrintPage> {
     });
 
     try {
-      await PercetakanService.buatPesananCetak(
+      final request = BuatPesananRequest(
         idNaskah: _selectedNaskah!,
         jumlah: int.parse(_jumlahController.text),
         formatKertas: _selectedFormatKertas,
@@ -458,15 +459,26 @@ class _PrintPageState extends State<PrintPage> {
         finishingTambahan: _selectedFinishing,
         catatan: _catatanController.text.isEmpty ? null : _catatanController.text,
       );
+      
+      final response = await CetakService.buatPesanan(request);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pesanan cetak berhasil dibuat!'),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
-        Navigator.of(context).pop();
+        if (response.sukses) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pesanan cetak berhasil dibuat!'),
+              backgroundColor: AppTheme.primaryGreen,
+            ),
+          );
+          Navigator.of(context).pop();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan ?? 'Gagal membuat pesanan'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

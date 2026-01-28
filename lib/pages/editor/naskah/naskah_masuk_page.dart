@@ -3,6 +3,7 @@ import 'dart:async';
 
 import '../../../models/editor/review_models.dart';
 import '../../../services/editor/naskah_masuk_service.dart';
+import '../../../services/editor/editor_api_service.dart';
 
 class NaskahMasukPage extends StatefulWidget {
   const NaskahMasukPage({super.key});
@@ -380,6 +381,28 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
                   ],
                 ),
               ],
+
+              // Button Selesaikan Review (hanya untuk status ditugaskan dan dalam_proses)
+              if (review.status == StatusReview.ditugaskan || 
+                  review.status == StatusReview.dalam_proses) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showSelesaikanReviewDialog(review),
+                    icon: const Icon(Icons.check_circle_outline, size: 20),
+                    label: const Text('Selesaikan Review'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -503,5 +526,182 @@ class _NaskahMasukPageState extends State<NaskahMasukPage> {
       // Refresh when back from detail
       _loadReviewMasuk();
     });
+  }
+
+  /// Menampilkan dialog untuk menyelesaikan review
+  void _showSelesaikanReviewDialog(ReviewNaskah review) {
+    Rekomendasi? selectedRekomendasi;
+    final TextEditingController catatanController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Selesaikan Review'),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Naskah: ${review.naskah.judul}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                
+                // Dropdown Rekomendasi
+                DropdownButtonFormField<Rekomendasi>(
+                  decoration: const InputDecoration(
+                    labelText: 'Rekomendasi',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: Rekomendasi.values.map((rekomendasi) {
+                    return DropdownMenuItem(
+                      value: rekomendasi,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getRekomendasiIcon(rekomendasi),
+                            color: _getRekomendasiColor(rekomendasi),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(_getRekomendasiLabel(rekomendasi)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedRekomendasi = value;
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Pilih rekomendasi';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // TextField Catatan
+                TextFormField(
+                  controller: catatanController,
+                  decoration: const InputDecoration(
+                    labelText: 'Catatan',
+                    hintText: 'Minimal 50 karakter',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 5,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Catatan harus diisi';
+                    }
+                    if (value.length < 50) {
+                      return 'Catatan minimal 50 karakter (${value.length}/50)';
+                    }
+                    if (value.length > 2000) {
+                      return 'Catatan maksimal 2000 karakter';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    // Trigger validation untuk update counter
+                    formKey.currentState?.validate();
+                  },
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${catatanController.text.length}/2000 karakter',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context);
+                _submitReview(review.id, selectedRekomendasi!, catatanController.text);
+              }
+            },
+            child: const Text('Selesaikan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Submit review ke backend
+  Future<void> _submitReview(String reviewId, Rekomendasi rekomendasi, String catatan) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final request = SubmitReviewRequest(
+        rekomendasi: rekomendasi,
+        catatan: catatan,
+      );
+
+      final response = await EditorApiService.submitReview(reviewId, request);
+
+      // Close loading
+      if (mounted) Navigator.pop(context);
+
+      if (response.sukses) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        
+        // Refresh list
+        _loadReviewMasuk();
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.pesan),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading if error
+      if (mounted) Navigator.pop(context);
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyelesaikan review: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

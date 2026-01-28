@@ -21,15 +21,24 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
   bool _isLoadingNaskah = true;
   String? _errorNaskah;
   
+  // Data percetakan yang tersedia
+  List<PercetakanInfo> _percetakanList = [];
+  bool _isLoadingPercetakan = false;
+  String? _errorPercetakan;
+  
   // Form values
   NaskahData? _selectedNaskah;
+  PercetakanInfo? _selectedPercetakan;
   int _jumlah = 100;
   String _formatKertas = 'A5';
-  String _jenisKertas = 'HVS 80gr';
-  String _jenisCover = 'Soft Cover';
+  String _jenisKertas = 'HVS'; // ✅ Match backend enum
+  String _jenisCover = 'SOFTCOVER'; // ✅ Match backend enum
   final List<String> _finishingTambahan = [];
   final TextEditingController _catatanController = TextEditingController();
   final TextEditingController _jumlahController = TextEditingController(text: '100');
+  final TextEditingController _alamatController = TextEditingController();
+  final TextEditingController _namaPenerimaController = TextEditingController();
+  final TextEditingController _teleponController = TextEditingController();
   
   bool _isSubmitting = false;
 
@@ -37,12 +46,42 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
   void initState() {
     super.initState();
     _loadNaskahDiterbitkan();
+    _loadPercetakan();
+  }
+
+  Future<void> _loadPercetakan() async {
+    setState(() {
+      _isLoadingPercetakan = true;
+      _errorPercetakan = null;
+    });
+
+    try {
+      final response = await CetakService.ambilDaftarPercetakan();
+
+      setState(() {
+        _isLoadingPercetakan = false;
+        if (response.sukses && response.data.isNotEmpty) {
+          _percetakanList = response.data;
+          _selectedPercetakan = _percetakanList.first; // Auto-select first
+        } else {
+          _errorPercetakan = response.pesan;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingPercetakan = false;
+        _errorPercetakan = 'Gagal memuat daftar percetakan';
+      });
+    }
   }
 
   @override
   void dispose() {
     _catatanController.dispose();
     _jumlahController.dispose();
+    _alamatController.dispose();
+    _namaPenerimaController.dispose();
+    _teleponController.dispose();
     super.dispose();
   }
 
@@ -80,22 +119,30 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
       _showSnackBar('Pilih naskah terlebih dahulu', isError: true);
       return;
     }
+    if (_selectedPercetakan == null) {
+      _showSnackBar('Pilih percetakan terlebih dahulu', isError: true);
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
     });
 
-    final request = BuatPesananRequest(
+    final request = BuatPesananBaruRequest(
       idNaskah: _selectedNaskah!.id,
+      idPercetakan: _selectedPercetakan!.id,
       jumlah: _jumlah,
       formatKertas: _formatKertas,
       jenisKertas: _jenisKertas,
       jenisCover: _jenisCover,
-      finishingTambahan: _finishingTambahan.isEmpty ? ['Tidak Ada'] : _finishingTambahan,
+      finishingTambahan: [],
       catatan: _catatanController.text.isEmpty ? null : _catatanController.text,
+      alamatPengiriman: _alamatController.text.isEmpty ? 'Alamat belum diisi' : _alamatController.text,
+      namaPenerima: _namaPenerimaController.text.isEmpty ? 'Nama belum diisi' : _namaPenerimaController.text,
+      teleponPenerima: _teleponController.text.isEmpty ? '08123456789' : _teleponController.text,
     );
 
-    final response = await CetakService.buatPesanan(request);
+    final response = await CetakService.buatPesananBaru(request);
 
     setState(() {
       _isSubmitting = false;
@@ -237,6 +284,11 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
           _buildNaskahDropdown(),
           const SizedBox(height: 24),
 
+          // Pilih Percetakan
+          _buildSectionTitle('Pilih Percetakan'),
+          _buildPercetakanDropdown(),
+          const SizedBox(height: 24),
+
           // Jumlah Cetak
           _buildSectionTitle('Jumlah Eksemplar'),
           _buildJumlahField(),
@@ -255,6 +307,19 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
           // Catatan
           _buildSectionTitle('Catatan (Opsional)'),
           _buildCatatanField(),
+          const SizedBox(height: 24),
+
+          // Alamat Pengiriman
+          _buildSectionTitle('Alamat Pengiriman'),
+          _buildAlamatField(),
+          const SizedBox(height: 16),
+
+          // Nama Penerima
+          _buildNamaPenerimaField(),
+          const SizedBox(height: 16),
+
+          // Telepon Penerima
+          _buildTeleponField(),
           const SizedBox(height: 32),
 
           // Submit Button
@@ -332,6 +397,110 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
     );
   }
 
+  Widget _buildPercetakanDropdown() {
+    if (_isLoadingPercetakan) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.greyDisabled),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('Memuat percetakan...'),
+          ],
+        ),
+      );
+    }
+
+    if (_errorPercetakan != null || _percetakanList.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.errorRed.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: AppTheme.errorRed, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _errorPercetakan ?? 'Tidak ada percetakan tersedia',
+                style: AppTheme.bodySmall.copyWith(color: AppTheme.errorRed),
+              ),
+            ),
+            TextButton(
+              onPressed: _loadPercetakan,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.greyDisabled),
+      ),
+      child: DropdownButtonFormField<PercetakanInfo>(
+        initialValue: _selectedPercetakan,
+        decoration: const InputDecoration(
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: InputBorder.none,
+          hintText: 'Pilih percetakan',
+        ),
+        items: _percetakanList.map((percetakan) {
+          return DropdownMenuItem(
+            value: percetakan,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  percetakan.nama,
+                  style: AppTheme.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (percetakan.kota != null)
+                  Text(
+                    percetakan.kota!,
+                    style: AppTheme.bodySmall.copyWith(color: AppTheme.greyText),
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setState(() {
+            _selectedPercetakan = value;
+          });
+        },
+        validator: (value) {
+          if (value == null) {
+            return 'Pilih percetakan terlebih dahulu';
+          }
+          return null;
+        },
+        isExpanded: true,
+        icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.primaryGreen),
+      ),
+    );
+  }
+
   Widget _buildJumlahField() {
     return Row(
       children: [
@@ -398,6 +567,7 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
             child: _buildDropdown(
               value: _jenisKertas,
               items: CetakOptions.jenisKertas,
+              labelMap: CetakOptions.jenisKertasLabel,
               onChanged: (value) => setState(() => _jenisKertas = value!),
             ),
           ),
@@ -409,6 +579,7 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
             child: _buildDropdown(
               value: _jenisCover,
               items: CetakOptions.jenisCover,
+              labelMap: CetakOptions.jenisCoverLabel,
               onChanged: (value) => setState(() => _jenisCover = value!),
             ),
           ),
@@ -445,6 +616,7 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
     required String value,
     required List<String> items,
     required void Function(String?) onChanged,
+    Map<String, String>? labelMap,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -461,7 +633,7 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
           return DropdownMenuItem<String>(
             value: item,
             child: Text(
-              item,
+              labelMap?[item] ?? item,
               style: AppTheme.bodySmall.copyWith(color: AppTheme.black),
             ),
           );
@@ -512,6 +684,63 @@ class _BuatPesananCetakPageState extends State<BuatPesananCetakPage> {
       decoration: AppTheme.inputDecoration(
         hintText: 'Tambahkan catatan untuk percetakan (opsional)',
       ),
+    );
+  }
+
+  Widget _buildAlamatField() {
+    return TextFormField(
+      controller: _alamatController,
+      maxLines: 2,
+      maxLength: 500,
+      decoration: AppTheme.inputDecoration(
+        hintText: 'Masukkan alamat lengkap pengiriman',
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Alamat pengiriman harus diisi';
+        }
+        if (value.trim().length < 10) {
+          return 'Alamat minimal 10 karakter';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildNamaPenerimaField() {
+    return TextFormField(
+      controller: _namaPenerimaController,
+      decoration: AppTheme.inputDecoration(
+        hintText: 'Nama penerima',
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Nama penerima harus diisi';
+        }
+        if (value.trim().length < 3) {
+          return 'Nama minimal 3 karakter';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildTeleponField() {
+    return TextFormField(
+      controller: _teleponController,
+      keyboardType: TextInputType.phone,
+      decoration: AppTheme.inputDecoration(
+        hintText: 'Nomor telepon penerima',
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Nomor telepon harus diisi';
+        }
+        if (value.trim().length < 8) {
+          return 'Nomor telepon minimal 8 digit';
+        }
+        return null;
+      },
     );
   }
 

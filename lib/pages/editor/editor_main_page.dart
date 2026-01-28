@@ -100,7 +100,6 @@ class _EditorMainPageState extends State<EditorMainPage> {
                   activeIcon: Icons.notifications,
                   label: 'Notifikasi',
                   index: 2,
-                  badge: _getNotificationBadge(),
                 ),
                 _buildNavItem(
                   icon: Icons.person_outline,
@@ -182,8 +181,8 @@ class _EditorMainPageState extends State<EditorMainPage> {
     );
   }
 
-  int? _getNotificationBadge() {
-    // TODO: Get from notification service
-    return 3; // Dummy badge count
-  }
+  // int? _getNotificationBadge() {
+  //   // TODO: Get from notification service
+  //   return 3; // Dummy badge count
+  // }
 }

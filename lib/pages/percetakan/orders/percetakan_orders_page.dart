@@ -12,18 +12,12 @@ class PercetakanOrdersPage extends StatefulWidget {
 
 class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
   bool _isLoading = true;
-  bool _isLoadingMore = false;
-  List<PesananCetak> _pesanan = [];
+  List<PesananCetak> _allPesanan = []; // Semua pesanan dari server
+  List<PesananCetak> _filteredPesanan = []; // Pesanan setelah filter
   String? _error;
   String? _selectedStatus;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-  
-  // Pagination
-  int _currentPage = 1;
-  final int _limit = 20;
-  int _totalPages = 1;
-  int _totalPesanan = 0;
 
   @override
   void initState() {
@@ -37,53 +31,49 @@ class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
     super.dispose();
   }
 
-  Future<void> _loadPesanan({bool loadMore = false}) async {
-    if (loadMore) {
-      if (_currentPage >= _totalPages) return;
-      setState(() {
-        _isLoadingMore = true;
-        _currentPage++;
-      });
-    } else {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-        _currentPage = 1;
-      });
-    }
+  Future<void> _loadPesanan() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     try {
+      // Ambil semua pesanan dari server dengan filter status jika ada
       final response = await PercetakanService.ambilDaftarPesanan(
-        halaman: _currentPage,
-        limit: _limit,
         status: _selectedStatus,
-        cari: _searchQuery.isNotEmpty ? _searchQuery : null,
       );
 
       if (!mounted) return;
 
       setState(() {
-        if (loadMore) {
-          _pesanan.addAll(response.data ?? []);
-          _isLoadingMore = false;
-        } else {
-          _pesanan = response.data ?? [];
-          _isLoading = false;
-        }
-
-        // Update pagination info
-        if (response.metadata != null) {
-          _totalPages = response.metadata!.totalHalaman;
-          _totalPesanan = response.metadata!.total;
-        }
+        _allPesanan = response.data ?? [];
+        _applyClientSideFilter(); // Terapkan filter lokal
+        _isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
-        _isLoadingMore = false;
       });
+    }
+  }
+
+  /// Filter pesanan secara lokal berdasarkan search query
+  void _applyClientSideFilter() {
+    if (_searchQuery.isEmpty) {
+      _filteredPesanan = List.from(_allPesanan);
+    } else {
+      final query = _searchQuery.toLowerCase();
+      _filteredPesanan = _allPesanan.where((pesanan) {
+        final nomorPesanan = pesanan.nomorPesanan.toLowerCase();
+        final judulNaskah = pesanan.naskah?.judul.toLowerCase() ?? '';
+        final namaPemesan = pesanan.pemesan?.profilPengguna?.namaLengkap.toLowerCase() ?? '';
+        
+        return nomorPesanan.contains(query) || 
+               judulNaskah.contains(query) || 
+               namaPemesan.contains(query);
+      }).toList();
     }
   }
 
@@ -97,8 +87,8 @@ class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
       if (_searchController.text == _searchQuery) return;
       setState(() {
         _searchQuery = _searchController.text;
+        _applyClientSideFilter(); // Terapkan filter lokal
       });
-      _loadPesanan();
     });
   }
 
@@ -106,7 +96,7 @@ class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
     setState(() {
       _selectedStatus = status;
     });
-    _loadPesanan();
+    _loadPesanan(); // Reload dari server dengan filter status baru
   }
 
   void _navigateToDetail(String idPesanan) {
@@ -155,7 +145,7 @@ class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                     ? _buildErrorWidget()
-                    : _pesanan.isEmpty
+                    : _filteredPesanan.isEmpty
                         ? _buildEmptyWidget()
                         : _buildPesananList(),
           ),
@@ -256,41 +246,40 @@ class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Menampilkan ${_pesanan.length} dari $_totalPesanan pesanan',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-            ),
-          ),
-          if (_totalPages > 1)
-            Text(
-              'Halaman $_currentPage dari $_totalPages',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
-            ),
-        ],
+      child: Text(
+        'Menampilkan ${_filteredPesanan.length} pesanan',
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.grey[600],
+        ),
       ),
     );
   }
 
   Widget _buildPesananList() {
+    if (_filteredPesanan.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada pesanan',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _refreshPesanan,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _pesanan.length + (_currentPage < _totalPages ? 1 : 0),
+        itemCount: _filteredPesanan.length,
         itemBuilder: (context, index) {
-          if (index == _pesanan.length) {
-            // Load more button
-            return _buildLoadMoreButton();
-          }
-          return _buildPesananCard(_pesanan[index]);
+          return _buildPesananCard(_filteredPesanan[index]);
         },
       ),
     );
@@ -542,32 +531,6 @@ class _PercetakanOrdersPageState extends State<PercetakanOrdersPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildLoadMoreButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Center(
-        child: _isLoadingMore
-            ? const CircularProgressIndicator()
-            : ElevatedButton.icon(
-                onPressed: () => _loadPesanan(loadMore: true),
-                icon: const Icon(Icons.expand_more),
-                label: const Text('Muat Lebih Banyak'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-      ),
     );
   }
 

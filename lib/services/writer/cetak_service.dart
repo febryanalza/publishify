@@ -10,8 +10,142 @@ class CetakService {
   static final logger = Logger();
   static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:4000';
 
-  /// Buat pesanan cetak baru
+  /// Ambil daftar percetakan yang tersedia
+  /// GET /api/percetakan/daftar
+  static Future<PercetakanListResponse> ambilDaftarPercetakan() async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return PercetakanListResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final url = Uri.parse('$baseUrl/api/percetakan/daftar');
+      
+      logger.d('Fetching percetakan list: $url');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      logger.d('Response status: ${response.statusCode}');
+      logger.d('Response body: ${response.body}');
+
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        logger.e('JSON decode error: $e');
+        return PercetakanListResponse(
+          sukses: false,
+          pesan: 'Format response tidak valid',
+        );
+      }
+      
+      if (response.statusCode == 200) {
+        try {
+          return PercetakanListResponse.fromJson(responseData);
+        } catch (e, stackTrace) {
+          logger.e('Error parsing response: $e');
+          logger.e('StackTrace: $stackTrace');
+          return PercetakanListResponse(
+            sukses: false,
+            pesan: 'Gagal memproses data: ${e.toString()}',
+          );
+        }
+      } else {
+        return PercetakanListResponse(
+          sukses: false,
+          pesan: responseData['pesan']?.toString() ?? 'Gagal mengambil daftar percetakan',
+        );
+      }
+    } catch (e, stackTrace) {
+      logger.e('Error fetching percetakan list: $e');
+      logger.e('StackTrace: $stackTrace');
+      return PercetakanListResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Buat pesanan cetak baru (endpoint simplified)
+  /// POST /api/percetakan/pesanan/baru
+  static Future<PesananDetailResponse> buatPesananBaru(BuatPesananBaruRequest request) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return PesananDetailResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final url = Uri.parse('$baseUrl/api/percetakan/pesanan/baru');
+      
+      logger.d('Creating print order (new endpoint): ${jsonEncode(request.toJson())}');
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+
+      logger.d('Response status: ${response.statusCode}');
+      logger.d('Response body: ${response.body}');
+
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        logger.e('JSON decode error: $e');
+        return PesananDetailResponse(
+          sukses: false,
+          pesan: 'Format response tidak valid',
+        );
+      }
+      
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        try {
+          return PesananDetailResponse.fromJson(responseData);
+        } catch (e, stackTrace) {
+          logger.e('Error parsing response: $e');
+          logger.e('StackTrace: $stackTrace');
+          return PesananDetailResponse(
+            sukses: false,
+            pesan: 'Gagal memproses data: ${e.toString()}',
+          );
+        }
+      } else {
+        return PesananDetailResponse(
+          sukses: false,
+          pesan: responseData['pesan']?.toString() ?? 'Gagal membuat pesanan cetak',
+        );
+      }
+    } catch (e, stackTrace) {
+      logger.e('Error creating print order: $e');
+      logger.e('StackTrace: $stackTrace');
+      return PesananDetailResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Buat pesanan cetak baru (OLD - deprecated)
   /// POST /api/percetakan
+  @deprecated
   static Future<PesananDetailResponse> buatPesanan(BuatPesananRequest request) async {
     try {
       final accessToken = await AuthService.getAccessToken();
@@ -39,18 +173,39 @@ class CetakService {
       logger.d('Response status: ${response.statusCode}');
       logger.d('Response body: ${response.body}');
 
-      final responseData = jsonDecode(response.body);
+      // Parse JSON dengan error handling
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        logger.e('JSON decode error: $e');
+        return PesananDetailResponse(
+          sukses: false,
+          pesan: 'Format response tidak valid',
+        );
+      }
       
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return PesananDetailResponse.fromJson(responseData);
+        try {
+          return PesananDetailResponse.fromJson(responseData);
+        } catch (e, stackTrace) {
+          logger.e('Error parsing response: $e');
+          logger.e('StackTrace: $stackTrace');
+          logger.e('Response data: $responseData');
+          return PesananDetailResponse(
+            sukses: false,
+            pesan: 'Gagal memproses data: ${e.toString()}',
+          );
+        }
       } else {
         return PesananDetailResponse(
           sukses: false,
-          pesan: responseData['pesan'] ?? 'Gagal membuat pesanan cetak',
+          pesan: responseData['pesan']?.toString() ?? 'Gagal membuat pesanan cetak',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       logger.e('Error creating print order: $e');
+      logger.e('StackTrace: $stackTrace');
       return PesananDetailResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
@@ -61,8 +216,6 @@ class CetakService {
   /// Ambil daftar pesanan cetak penulis
   /// GET /api/percetakan/penulis/saya
   static Future<PesananListResponse> ambilPesananSaya({
-    int halaman = 1,
-    int limit = 20,
     String? status,
   }) async {
     try {
@@ -75,14 +228,16 @@ class CetakService {
         );
       }
 
-      final queryParams = {
-        'halaman': halaman.toString(),
-        'limit': limit.toString(),
-        if (status != null) 'status': status,
-      };
+      // Build query params - HANYA status yang dikirim
+      final queryParams = <String, String>{};
+      if (status != null) {
+        queryParams['status'] = status;
+      }
 
-      final url = Uri.parse('$baseUrl/api/percetakan/penulis/saya')
-          .replace(queryParameters: queryParams);
+      final url = queryParams.isEmpty
+          ? Uri.parse('$baseUrl/api/percetakan/penulis/saya')
+          : Uri.parse('$baseUrl/api/percetakan/penulis/saya')
+              .replace(queryParameters: queryParams);
       
       logger.d('Fetching print orders: $url');
 
@@ -95,19 +250,41 @@ class CetakService {
       );
 
       logger.d('Response status: ${response.statusCode}');
+      logger.d('Response body: ${response.body}');
 
-      final responseData = jsonDecode(response.body);
+      // Parse JSON dengan error handling
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        logger.e('JSON decode error: $e');
+        return PesananListResponse(
+          sukses: false,
+          pesan: 'Format response tidak valid',
+        );
+      }
       
       if (response.statusCode == 200) {
-        return PesananListResponse.fromJson(responseData);
+        try {
+          return PesananListResponse.fromJson(responseData);
+        } catch (e, stackTrace) {
+          logger.e('Error parsing response: $e');
+          logger.e('StackTrace: $stackTrace');
+          logger.e('Response data: $responseData');
+          return PesananListResponse(
+            sukses: false,
+            pesan: 'Gagal memproses data: ${e.toString()}',
+          );
+        }
       } else {
         return PesananListResponse(
           sukses: false,
-          pesan: responseData['pesan'] ?? 'Gagal mengambil daftar pesanan',
+          pesan: responseData['pesan']?.toString() ?? 'Gagal mengambil daftar pesanan',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       logger.e('Error fetching print orders: $e');
+      logger.e('StackTrace: $stackTrace');
       return PesananListResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
@@ -141,19 +318,41 @@ class CetakService {
       );
 
       logger.d('Response status: ${response.statusCode}');
+      logger.d('Response body: ${response.body}');
 
-      final responseData = jsonDecode(response.body);
+      // Parse JSON dengan error handling
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        logger.e('JSON decode error: $e');
+        return PesananDetailResponse(
+          sukses: false,
+          pesan: 'Format response tidak valid',
+        );
+      }
       
       if (response.statusCode == 200) {
-        return PesananDetailResponse.fromJson(responseData);
+        try {
+          return PesananDetailResponse.fromJson(responseData);
+        } catch (e, stackTrace) {
+          logger.e('Error parsing response: $e');
+          logger.e('StackTrace: $stackTrace');
+          logger.e('Response data: $responseData');
+          return PesananDetailResponse(
+            sukses: false,
+            pesan: 'Gagal memproses data: ${e.toString()}',
+          );
+        }
       } else {
         return PesananDetailResponse(
           sukses: false,
-          pesan: responseData['pesan'] ?? 'Gagal mengambil detail pesanan',
+          pesan: responseData['pesan']?.toString() ?? 'Gagal mengambil detail pesanan',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       logger.e('Error fetching order detail: $e');
+      logger.e('StackTrace: $stackTrace');
       return PesananDetailResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
@@ -190,19 +389,41 @@ class CetakService {
       );
 
       logger.d('Response status: ${response.statusCode}');
+      logger.d('Response body: ${response.body}');
 
-      final responseData = jsonDecode(response.body);
+      // Parse JSON dengan error handling
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        logger.e('JSON decode error: $e');
+        return PesananDetailResponse(
+          sukses: false,
+          pesan: 'Format response tidak valid',
+        );
+      }
       
       if (response.statusCode == 200) {
-        return PesananDetailResponse.fromJson(responseData);
+        try {
+          return PesananDetailResponse.fromJson(responseData);
+        } catch (e, stackTrace) {
+          logger.e('Error parsing response: $e');
+          logger.e('StackTrace: $stackTrace');
+          logger.e('Response data: $responseData');
+          return PesananDetailResponse(
+            sukses: false,
+            pesan: 'Gagal memproses data: ${e.toString()}',
+          );
+        }
       } else {
         return PesananDetailResponse(
           sukses: false,
-          pesan: responseData['pesan'] ?? 'Gagal membatalkan pesanan',
+          pesan: responseData['pesan']?.toString() ?? 'Gagal membatalkan pesanan',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       logger.e('Error canceling order: $e');
+      logger.e('StackTrace: $stackTrace');
       return PesananDetailResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
