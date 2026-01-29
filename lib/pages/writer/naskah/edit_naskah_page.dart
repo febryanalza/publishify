@@ -73,9 +73,10 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
   void _checkEditPermission() {
     final status = widget.naskah.status.toLowerCase();
     
-    // Status yang tidak boleh diedit
-    // Naskah terkunci setelah siap terbit atau diterbitkan
-    final lockedStatuses = ['siap_terbit', 'ditolak', 'diterbitkan'];
+    // Status yang tidak boleh diedit (sesuai backend: hanya draft dan ditolak yang bisa diedit)
+    // Backend: status === draft || status === ditolak → bisa edit
+    // Status siap_terbit hanya bisa edit kelengkapan dokumen
+    final lockedStatuses = ['diajukan', 'dalam_review', 'dalam_editing', 'siap_terbit', 'diterbitkan'];
     
     if (lockedStatuses.contains(status)) {
       showDialog(
@@ -90,8 +91,8 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
             ],
           ),
           content: Text(
-            'Naskah dengan status "$status" tidak dapat diubah. '
-            'Naskah hanya dapat diedit sampai status "dalam review".',
+            'Naskah dengan status "${_formatStatus(status)}" tidak dapat diubah. '
+            'Naskah hanya dapat diedit saat status "Draft" atau "Ditolak".',
             style: AppTheme.bodyMedium,
           ),
           actions: [
@@ -146,9 +147,21 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
       setState(() {
         if (kategoriResponse.sukses && kategoriResponse.data != null) {
           _kategoriList = kategoriResponse.data!;
+          // Validasi: pastikan _selectedKategoriId ada dalam list
+          final kategoriIds = _kategoriList.map((k) => k.id).toList();
+          if (_selectedKategoriId != null && !kategoriIds.contains(_selectedKategoriId)) {
+            debugPrint('Warning: Kategori ID $_selectedKategoriId tidak ditemukan di list kategori aktif');
+            _selectedKategoriId = null;
+          }
         }
         if (genreResponse.sukses && genreResponse.data != null) {
           _genreList = genreResponse.data!;
+          // Validasi: pastikan _selectedGenreId ada dalam list
+          final genreIds = _genreList.map((g) => g.id).toList();
+          if (_selectedGenreId != null && !genreIds.contains(_selectedGenreId)) {
+            debugPrint('Warning: Genre ID $_selectedGenreId tidak ditemukan di list genre aktif');
+            _selectedGenreId = null;
+          }
         }
         _isLoadingOptions = false;
       });
@@ -241,13 +254,27 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
   }
 
   Future<void> _submitUpdate() async {
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('=== _submitUpdate called ===');
+    debugPrint('Form key current state: ${_formKey.currentState}');
+    
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('Form validation FAILED');
+      return;
+    }
+    
+    debugPrint('Form validation PASSED');
 
     // Validasi: jika ada file sampul yang dipilih tapi belum diupload
     if (_sampulFile != null && _sampulUrl == null) {
       _showSnackBar('Mohon upload sampul terlebih dahulu dengan menekan tombol "Upload"', isError: true);
       return;
     }
+
+    debugPrint('Starting API call...');
+    debugPrint('Naskah ID: ${widget.naskah.id}');
+    debugPrint('Judul: ${_judulController.text.trim()}');
+    debugPrint('Kategori ID: $_selectedKategoriId');
+    debugPrint('Genre ID: $_selectedGenreId');
 
     setState(() {
       _isSubmitting = true;
@@ -278,6 +305,8 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
         ? _isbnController.text.trim()
         : null,
     );
+
+    debugPrint('API Response - sukses: ${response.sukses}, pesan: ${response.pesan}');
 
     setState(() {
       _isSubmitting = false;
@@ -444,6 +473,7 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
           // Kategori *
           _buildSectionTitle('Kategori *'),
           DropdownButtonFormField<String>(
+            key: ValueKey('kategori_$_selectedKategoriId'),
             initialValue: _selectedKategoriId,
             decoration: AppTheme.inputDecoration(
               hintText: 'Pilih kategori',
@@ -472,6 +502,7 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
           // Genre *
           _buildSectionTitle('Genre *'),
           DropdownButtonFormField<String>(
+            key: ValueKey('genre_$_selectedGenreId'),
             initialValue: _selectedGenreId,
             decoration: AppTheme.inputDecoration(
               hintText: 'Pilih genre',
@@ -500,7 +531,8 @@ class _EditNaskahPageState extends State<EditNaskahPage> {
           // Format Buku
           _buildSectionTitle('Format Buku (Opsional)'),
           DropdownButtonFormField<String>(
-            value: _selectedFormatBuku,
+            key: ValueKey('format_$_selectedFormatBuku'),
+            initialValue: _selectedFormatBuku,
             decoration: AppTheme.inputDecoration(
               hintText: 'Pilih format buku',
               prefixIcon: const Icon(Icons.aspect_ratio, color: AppTheme.primaryGreen),

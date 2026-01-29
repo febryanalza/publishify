@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -103,12 +104,14 @@ class ReviewService {
   }
 
   /// Get all reviews for current user's manuscripts
-  /// OPTIMIZED: Menggunakan endpoint backend yang optimal dengan single query
   /// 
-  /// Backend endpoint: GET /api/review/penulis/saya
-  /// - Single query dengan JOIN
-  /// - Server-side pagination
-  /// - 50-500x lebih cepat dari metode sebelumnya
+  /// Strategi: 
+  /// 1. Ambil daftar naskah milik penulis yang bukan draft
+  /// 2. Untuk setiap naskah, ambil review menggunakan GET /api/review/naskah/:idNaskah
+  /// 
+  /// Backend endpoint yang digunakan:
+  /// - GET /api/naskah/penulis/saya (untuk ambil daftar naskah)
+  /// - GET /api/review/naskah/:idNaskah (untuk ambil review per naskah)
   static Future<ReviewListResponse> getAllReviewsForMyManuscripts({
     int halaman = 1,
     int limit = 20,
@@ -133,50 +136,119 @@ class ReviewService {
         }
       }
 
-      // Build query parameters
-      final queryParams = {
-        'halaman': halaman.toString(),
-        'limit': limit.toString(),
-      };
-      
-      if (status != null && status.isNotEmpty && status != 'semua') {
-        queryParams['status'] = status;
-      }
+      // Step 1: Ambil daftar naskah penulis (yang sudah diajukan atau lebih)
+      // Naskah dengan status: diajukan, dalam_review, dalam_editing, siap_terbit, diterbitkan
+      final naskahUri = Uri.parse('$baseUrl/api/naskah/penulis/saya')
+          .replace(queryParameters: {
+            'halaman': '1',
+            'limit': '100', // Ambil semua naskah
+          });
 
-      // OPTIMIZED: Single API call dengan endpoint khusus penulis
-      final uri = Uri.parse('$baseUrl/api/review/penulis/saya')
-          .replace(queryParameters: queryParams);
-
-      final response = await http.get(
-        uri,
+      final naskahResponse = await http.get(
+        naskahUri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
         },
       );
 
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        final result = ReviewListResponse.fromJson(responseData);
-        
-        // Cache data (if halaman 1 and successful)
-        if (halaman == 1 && result.sukses && result.data != null) {
-          await _cacheReviews(result);
-        }
-        
-        return result;
-      } else if (response.statusCode == 404) {
-        return ReviewListResponse(
-          sukses: true,
-          pesan: 'Belum ada review untuk naskah Anda',
-          data: [],
-        );
-      } else {
+      if (naskahResponse.statusCode != 200) {
+        debugPrint('ReviewService: Gagal mengambil naskah - Status: ${naskahResponse.statusCode}');
         return ReviewListResponse(
           sukses: false,
-          pesan: 'Gagal mengambil data review: ${response.statusCode}',
+          pesan: 'Gagal mengambil data naskah: ${naskahResponse.statusCode}',
         );
       }
+
+      final naskahData = jsonDecode(naskahResponse.body);
+      final List<dynamic> naskahList = naskahData['data'] ?? [];
+      
+      debugPrint('ReviewService: Ditemukan ${naskahList.length} naskah');
+
+      if (naskahList.isEmpty) {
+        return ReviewListResponse(
+          sukses: true,
+          pesan: 'Belum ada naskah',
+          data: [],
+        );
+      }
+
+      // Step 2: Untuk setiap naskah, ambil review-nya
+      List<ReviewData> allReviews = [];
+
+      for (var naskah in naskahList) {
+        final idNaskah = naskah['id'];
+        if (idNaskah == null) continue;
+
+        // Skip naskah dengan status draft (belum ada review)
+        final naskahStatus = naskah['status']?.toString().toLowerCase() ?? '';
+        if (naskahStatus == 'draft') continue;
+
+        try {
+          // Build query params untuk filter status jika ada
+          final queryParams = <String, String>{
+            'halaman': '1',
+            'limit': '50',
+          };
+          if (status != null && status.isNotEmpty && status != 'semua') {
+            queryParams['status'] = status;
+          }
+
+          final reviewUri = Uri.parse('$baseUrl/api/review/naskah/$idNaskah')
+              .replace(queryParameters: queryParams);
+
+          final reviewResponse = await http.get(
+            reviewUri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $accessToken',
+            },
+          );
+
+          if (reviewResponse.statusCode == 200) {
+            final reviewData = jsonDecode(reviewResponse.body);
+            if (reviewData['sukses'] == true && reviewData['data'] != null) {
+              final List<dynamic> reviews = reviewData['data'];
+              for (var review in reviews) {
+                allReviews.add(ReviewData.fromJson(review));
+              }
+            }
+          }
+        } catch (e) {
+          // Continue to next naskah if error
+          continue;
+        }
+      }
+
+      // Sort by ditugaskanPada descending (newest first)
+      allReviews.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(a.ditugaskanPada);
+          final dateB = DateTime.parse(b.ditugaskanPada);
+          return dateB.compareTo(dateA);
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      final result = ReviewListResponse(
+        sukses: true,
+        pesan: 'Berhasil mengambil data review',
+        data: allReviews,
+        metadata: MetaData(
+          total: allReviews.length,
+          halaman: halaman,
+          limit: limit,
+          totalHalaman: 1,
+        ),
+      );
+      
+      // Cache data (if halaman 1 and successful)
+      if (halaman == 1 && result.sukses && result.data != null) {
+        await _cacheReviews(result);
+      }
+      
+      return result;
     } catch (e) {
       return ReviewListResponse(
         sukses: false,

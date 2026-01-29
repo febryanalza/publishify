@@ -16,7 +16,7 @@ class Notifikasi {
   final String? url;
   final bool dibaca;
   final DateTime dibuatPada;
-  final DateTime diperbaruiPada;
+  final DateTime? diperbaruiPada;
 
   Notifikasi({
     required this.id,
@@ -27,20 +27,24 @@ class Notifikasi {
     this.url,
     required this.dibaca,
     required this.dibuatPada,
-    required this.diperbaruiPada,
+    this.diperbaruiPada,
   });
 
   factory Notifikasi.fromJson(Map<String, dynamic> json) {
     return Notifikasi(
-      id: json['id'],
-      idPengguna: json['idPengguna'],
-      judul: json['judul'],
-      pesan: json['pesan'],
-      tipe: json['tipe'],
+      id: json['id'] ?? '',
+      idPengguna: json['idPengguna'] ?? '',
+      judul: json['judul'] ?? 'Tanpa Judul',
+      pesan: json['pesan'] ?? '',
+      tipe: json['tipe'] ?? 'info',
       url: json['url'],
-      dibaca: json['dibaca'],
-      dibuatPada: DateTime.parse(json['dibuatPada']),
-      diperbaruiPada: DateTime.parse(json['diperbaruiPada']),
+      dibaca: json['dibaca'] ?? false,
+      dibuatPada: json['dibuatPada'] != null 
+          ? DateTime.parse(json['dibuatPada']) 
+          : DateTime.now(),
+      diperbaruiPada: json['diperbaruiPada'] != null 
+          ? DateTime.parse(json['diperbaruiPada']) 
+          : null,
     );
   }
 
@@ -54,7 +58,7 @@ class Notifikasi {
       'url': url,
       'dibaca': dibaca,
       'dibuatPada': dibuatPada.toIso8601String(),
-      'diperbaruiPada': diperbaruiPada.toIso8601String(),
+      'diperbaruiPada': diperbaruiPada?.toIso8601String(),
     };
   }
 }
@@ -75,10 +79,10 @@ class NotifikasiMetadata {
 
   factory NotifikasiMetadata.fromJson(Map<String, dynamic> json) {
     return NotifikasiMetadata(
-      total: json['total'],
-      halaman: json['halaman'],
-      limit: json['limit'],
-      totalHalaman: json['totalHalaman'],
+      total: json['total'] ?? 0,
+      halaman: json['halaman'] ?? 1,
+      limit: json['limit'] ?? 10,
+      totalHalaman: json['totalHalaman'] ?? 1,
     );
   }
 }

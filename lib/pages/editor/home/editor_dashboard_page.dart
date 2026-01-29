@@ -8,6 +8,7 @@ import 'package:publishify/pages/editor/review/review_collection_page.dart';
 import 'package:publishify/pages/editor/feedback/editor_feedback_page.dart';
 import 'package:publishify/pages/editor/naskah/naskah_masuk_page.dart';
 import 'package:publishify/pages/editor/statistics/editor_statistics_page.dart';
+import 'package:publishify/pages/editor/penerbitan/editor_pesanan_terbit_page.dart';
 
 class EditorDashboardPage extends StatefulWidget {
   final String? editorName;
@@ -292,7 +293,11 @@ class _EditorDashboardPageState extends State<EditorDashboardPage> {
             onTap: () => _handleAction('naskah'),
             hasNotification: _reviewMenunggu > 0,
           ),
-          
+          ActionButton(
+            icon: Icons.publish,
+            label: 'Terbit',
+            onTap: () => _handleAction('penerbitan'),
+          ),
         ],
       ),
     );
@@ -571,6 +576,12 @@ class _EditorDashboardPageState extends State<EditorDashboardPage> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const EditorStatisticsPage()),
+        );
+        break;
+      case 'penerbitan':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EditorPesananTerbitPage()),
         );
         break;
       default:

@@ -742,3 +742,61 @@ extension StatusNaskahExtension on StatusNaskah {
     }
   }
 }
+
+/// Response untuk Submit Revisi Naskah
+class SubmitRevisiResponse {
+  final bool sukses;
+  final String pesan;
+  final RevisiNaskahData? data;
+
+  SubmitRevisiResponse({
+    required this.sukses,
+    required this.pesan,
+    this.data,
+  });
+
+  factory SubmitRevisiResponse.fromJson(Map<String, dynamic> json) {
+    return SubmitRevisiResponse(
+      sukses: json['sukses'] ?? false,
+      pesan: json['pesan'] ?? '',
+      data: json['data'] != null ? RevisiNaskahData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+/// Data untuk Revisi Naskah
+class RevisiNaskahData {
+  final String id;
+  final String idNaskah;
+  final int versi;
+  final String? urlFile;
+  final String? catatan;
+  final String status;
+  final String dibuatPada;
+  final String? diperbaruiPada;
+
+  RevisiNaskahData({
+    required this.id,
+    required this.idNaskah,
+    required this.versi,
+    this.urlFile,
+    this.catatan,
+    required this.status,
+    required this.dibuatPada,
+    this.diperbaruiPada,
+  });
+
+  factory RevisiNaskahData.fromJson(Map<String, dynamic> json) {
+    return RevisiNaskahData(
+      id: json['id'] ?? '',
+      idNaskah: json['idNaskah'] ?? '',
+      versi: json['versi'] ?? 0,
+      urlFile: json['urlFile'],
+      catatan: json['catatan'],
+      status: json['status'] ?? '',
+      dibuatPada: json['dibuatPada'] ?? '',
+      diperbaruiPada: json['diperbaruiPada'],
+    );
+  }
+}
+

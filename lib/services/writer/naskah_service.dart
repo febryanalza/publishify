@@ -442,6 +442,8 @@ class NaskahService {
       }
 
       // Make API request
+      _logger.d('PUT /api/naskah/$id - Request body: $body');
+      
       final response = await http.put(
         uri,
         headers: {
@@ -450,6 +452,9 @@ class NaskahService {
         },
         body: jsonEncode(body),
       );
+
+      _logger.d('PUT /api/naskah/$id - Status: ${response.statusCode}');
+      _logger.d('PUT /api/naskah/$id - Response: ${response.body}');
 
       final responseData = jsonDecode(response.body);
       return CreateNaskahResponse.fromJson(responseData);
@@ -725,6 +730,70 @@ class NaskahService {
     } catch (e) {
       _logger.e('Error hapus naskah: $e');
       return HapusNaskahResponse(
+        sukses: false,
+        pesan: 'Terjadi kesalahan: ${e.toString()}',
+      );
+    }
+  }
+
+  /// POST /api/naskah/:id/submit-revisi
+  /// Penulis submit revisi naskah dengan file baru
+  static Future<SubmitRevisiResponse> submitRevisi({
+    required String idNaskah,
+    required String urlFileNaskah,
+    String? catatan,
+  }) async {
+    try {
+      final accessToken = await AuthService.getAccessToken();
+      
+      if (accessToken == null) {
+        return SubmitRevisiResponse(
+          sukses: false,
+          pesan: 'Token tidak ditemukan. Silakan login kembali.',
+        );
+      }
+
+      final uri = Uri.parse('$baseUrl/api/naskah/$idNaskah/submit-revisi');
+
+      final body = {
+        'urlFile': urlFileNaskah,
+        if (catatan != null && catatan.isNotEmpty) 'catatan': catatan,
+      };
+
+      _logger.d('Submit revisi: ${uri.toString()}');
+      _logger.d('Body: $body');
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(body),
+      );
+
+      _logger.d('Submit revisi response: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        return SubmitRevisiResponse.fromJson(responseData);
+      } else {
+        String errorMessage = 'Gagal submit revisi';
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['pesan'] ?? errorMessage;
+        } catch (e) {
+          _logger.w('Error parsing error response: $e');
+        }
+        
+        return SubmitRevisiResponse(
+          sukses: false,
+          pesan: errorMessage,
+        );
+      }
+    } catch (e) {
+      _logger.e('Error submit revisi: $e');
+      return SubmitRevisiResponse(
         sukses: false,
         pesan: 'Terjadi kesalahan: ${e.toString()}',
       );

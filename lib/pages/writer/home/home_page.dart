@@ -7,6 +7,7 @@ import 'package:publishify/widgets/cards/book_card.dart';
 import 'package:publishify/services/writer/naskah_service.dart';
 import 'package:publishify/services/general/auth_service.dart';
 import 'package:publishify/routes/app_routes.dart';
+import 'package:publishify/pages/writer/penerbitan/pesanan_terbit_page.dart';
 
 class HomePage extends StatefulWidget {
   final String? userName;
@@ -317,11 +318,15 @@ class _HomePageState extends State<HomePage> {
             onTap: () => _handleAction('revisi'),
             hasNotification: true,
           ),
-
           ActionButton(
             icon: Icons.list,
             label: '',
             onTap: () => _handleAction('list'),
+          ),
+          ActionButton(
+            icon: Icons.publish,
+            label: '',
+            onTap: () => _handleAction('penerbitan'),
           ),
         ],
       ),
@@ -434,6 +439,14 @@ class _HomePageState extends State<HomePage> {
     } else if (action == 'list') {
       // Navigate to naskah list page
       Navigator.pushNamed(context, '/naskah-list');
+    } else if (action == 'penerbitan') {
+      // Navigate to pesanan terbit page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PesananTerbitPage(),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -429,4 +429,11 @@ class EditorReviewService {
     return review.status == StatusReview.dalam_proses && 
            review.feedback.isNotEmpty;
   }
+
+  /// Cek apakah review bisa dibatalkan
+  static bool canCancelReview(StatusReview status) {
+    // Hanya bisa dibatalkan jika masih dalam proses atau ditugaskan
+    return status == StatusReview.ditugaskan || 
+           status == StatusReview.dalam_proses;
+  }
 }
